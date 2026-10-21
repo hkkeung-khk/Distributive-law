@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributive Property Game - 乘法分配律遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+TC:wght@500;700;900&display=swap');
+        
+        body {
+            font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            background: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 100%);
+        }
+
+        .bracket {
+            display: inline-block;
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #4f46e5;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease;
+            transform-origin: bottom center;
+        }
+
+        .bracket-left-collapse {
+            transform: rotate(-90deg) translateY(12px) scale(0.8);
+            opacity: 0.15;
+        }
+
+        .bracket-right-collapse {
+            transform: rotate(90deg) translateY(12px) scale(0.8);
+            opacity: 0.15;
+        }
+
+        .draggable {
+            cursor: grab;
+            touch-action: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        
+        .draggable:active {
+            cursor: grabbing;
+        }
+
+        .draggable-selected {
+            box-shadow: 0 0 0 4px #f59e0b;
+            border-radius: 9999px;
+            animation: pulse-ring 1.2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
+        .drop-target {
+            min-width: 52px;
+            min-height: 52px;
+            border: 2.5px dashed #a5b4fc;
+            border-radius: 16px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.25s ease;
+            background-color: #ffffff;
+        }
+
+        .drop-target.target-active {
+            border-color: #6366f1;
+            background-color: #e0e7ff;
+            transform: scale(1.05);
+        }
+
+        .drop-target.target-hover {
+            border-color: #10b981;
+            background-color: #d1fae5;
+            transform: scale(1.1);
+        }
+
+        .awarded-container {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 2px;
+            margin-bottom: 4px;
+            z-index: 30;
+            pointer-events: none;
+        }
+
+        .item-awarded {
+            font-size: 1.25rem;
+            font-weight: bold;
+            line-height: 1;
+            background: #ffffff;
+            border: 2px solid #10b981;
+            color: #047857;
+            padding: 2px 8px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            white-space: nowrap;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .drag-clone {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -100%) scale(1.25);
+            filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.2));
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 2.5px solid #10b981;
+        }
+
+        .eating-anim {
+            animation: eatSwallow 0.6s ease-in-out forwards;
+        }
+
+        @keyframes eatSwallow {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3) rotate(10deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .input-box {
+            width: 3.75rem;
+            height: 3rem;
+            text-align: center;
+            font-size: 1.35rem;
+            font-weight: 700;
+            border: 2.5px solid #cbd5e1;
+            border-radius: 12px;
+            background-color: #ffffff;
+            outline: none;
+            transition: all 0.2s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        .input-box:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+        }
+
+        .custom-keyboard {
+            background-color: #ffffff;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12);
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+        }
+
+        .key-btn {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-weight: 700;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 0 #cbd5e1;
+            transition: all 0.1s;
+        }
+
+        .key-btn:active {
+            transform: translateY(3px);
+            box-shadow: none;
+            background-color: #e2e8f0;
+        }
+
+        .toast-popup {
+            position: fixed;
+            top: 5rem;
+            right: 1.25rem;
+            z-index: 50;
+            max-width: 22rem;
+            backdrop-filter: blur(12px);
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .mode-btn {
+            padding: 8px 14px;
+            font-size: 0.875rem;
+            font-weight: 700;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .mode-btn-active {
+            background-color: #4f46e5;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            transform: scale(1.03);
+        }
+
+        .mode-btn-inactive {
+            background-color: #ffffff;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .mode-btn-inactive:hover {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between pb-32">
+    <!-- Header Navigation -->
+    <header class="w-full bg-white/80 backdrop-blur-md shadow-sm border-b border-indigo-100 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">✨</span>
+                <h1 id="title-text" class="text-xl md:text-2xl font-extrabold text-indigo-700 tracking-tight">
+                    乘法分配律遊戲
+                </h1>
+            </div>
+            <button id="lang-toggle" class="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-xl font-bold text-sm transition">
+                EN / 中
+            </button>
+        </div>
+    </header>
+
+    <!-- Mode Selector Navigation -->
+    <nav class="w-full bg-white/50 border-b border-indigo-50 p-2.5 flex flex-wrap justify-center gap-2 z-10 shadow-inner">
+        <button class="mode-btn mode-btn-inactive" data-mode="ex1">示範 1</button>
+        <button class="mode-btn mode-btn-inactive" data-mode="ex2">示範 2</button>
+        <button class="mode-btn mode-btn-inactive" data-mode="ex3">示範 3</button>
+        <button class="mode-btn mode-btn-inactive" data-mode="ex4">示範 4</button>
+        <button class="mode-btn mode-btn-inactive" data-mode="play">玩樂模式 1</button>
+        <button class="mode-btn mode-btn-inactive" data-mode="demo2">示範 2 (雙括號)</button>
+        <button class="mode-btn mode-btn-inactive" data-mode="demo21">示範 2.1</button>
+        <button class="mode-btn mode-btn-inactive" data-mode="play2">玩樂模式 2</button>
+    </nav>
+
+    <!-- Main Game Canvas -->
+    <main class="w-full max-w-4xl flex-1 flex flex-col items-center p-4 relative">
+        <div id="instruction-card" class="w-full bg-white border-2 border-indigo-100 rounded-2xl p-4 mb-6 shadow-md text-center transition-all duration-300">
+            <p id="instruction" class="text-lg md:text-xl font-bold text-indigo-900"></p>
+        </div>
+
+        <div id="game-workspace" class="w-full flex flex-col items-center gap-5">
+            <!-- Dynamic step rows generated here -->
+        </div>
+
+        <div class="mt-8 flex gap-4 justify-center items-center">
+            <button id="check-btn" class="hidden px-8 py-3 bg-emerald-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:bg-emerald-600 active:scale-95 transition">
+                檢查
+            </button>
+            <button id="next-btn" class="hidden px-8 py-3 bg-indigo-600 text-white font-bold text-lg rounded-2xl shadow-lg hover:bg-indigo-700 active:scale-95 transition">
+                下一題
+            </button>
+        </div>
+    </main>
+
+    <!-- Feedback Toast -->
+    <div id="toast-message" class="toast-popup hidden p-4 rounded-2xl shadow-2xl border text-sm md:text-base font-semibold">
+        <div id="toast-title" class="font-bold text-base md:text-lg mb-1"></div>
+        <div id="toast-body" class="text-gray-700"></div>
+    </div>
+
+    <!-- On-screen Custom Keypad -->
+    <div id="virtual-keyboard" class="fixed bottom-0 left-0 w-full custom-keyboard hidden p-3.5 z-40 flex flex-col items-center">
+        <div class="w-full max-w-md flex justify-between items-center mb-2 px-2">
+            <span class="text-xs font-bold text-gray-500" id="kb-label">數字九宮格鍵盤</span>
+            <button id="kb-page-toggle" class="bg-indigo-600 text-white text-xs px-3.5 py-1.5 rounded-full font-bold hover:bg-indigo-700 shadow-sm transition">
+                切換符號 (x y a b c d ² ³ ⁴)
+            </button>
+        </div>
+        
+        <div id="kb-num-page" class="w-full max-w-md grid grid-cols-4 gap-2">
+            <button class="key-btn py-2.5 text-lg" data-key="7">7</button>
+            <button class="key-btn py-2.5 text-lg" data-key="8">8</button>
+            <button class="key-btn py-2.5 text-lg" data-key="9">9</button>
+            <button class="key-btn py-2.5 text-sm bg-amber-100 text-amber-900 border-amber-300" data-key="BACKSPACE">⌫</button>
+
+            <button class="key-btn py-2.5 text-lg" data-key="4">4</button>
+            <button class="key-btn py-2.5 text-lg" data-key="5">5</button>
+            <button class="key-btn py-2.5 text-lg" data-key="6">6</button>
+            <button class="key-btn py-2.5 text-sm bg-slate-200 text-slate-800" data-key="CLEAR">C</button>
+
+            <button class="key-btn py-2.5 text-lg" data-key="1">1</button>
+            <button class="key-btn py-2.5 text-lg" data-key="2">2</button>
+            <button class="key-btn py-2.5 text-lg" data-key="3">3</button>
+            <button class="key-btn py-2.5 text-sm bg-emerald-600 text-white hover:bg-emerald-700" data-key="DONE">完成</button>
+
+            <button class="key-btn py-2.5 text-lg text-emerald-600 bg-emerald-50 border-emerald-300" data-key="+">+</button>
+            <button class="key-btn py-2.5 text-lg" data-key="0">0</button>
+            <button class="key-btn py-2.5 text-lg text-rose-600 bg-rose-50 border-rose-300" data-key="-">-</button>
+            <button class="key-btn py-2.5 text-xs text-gray-500 bg-gray-100" data-key="SPACE">空格</button>
+        </div>
+
+        <div id="kb-alpha-page" class="w-full max-w-md grid grid-cols-4 gap-2 hidden">
+            <button class="key-btn py-2.5 text-base" data-key="x">x</button>
+            <button class="key-btn py-2.5 text-base" data-key="y">y</button>
+            <button class="key-btn py-2.5 text-base" data-key="a">a</button>
+            <button class="key-btn py-2.5 text-sm bg-amber-100 text-amber-900 border-amber-300" data-key="BACKSPACE">⌫</button>
+
+            <button class="key-btn py-2.5 text-base" data-key="b">b</button>
+            <button class="key-btn py-2.5 text-base" data-key="c">c</button>
+            <button class="key-btn py-2.5 text-base" data-key="d">d</button>
+            <button class="key-btn py-2.5 text-sm bg-slate-200 text-slate-800" data-key="CLEAR">C</button>
+
+            <button class="key-btn py-2.5 text-base font-bold text-indigo-600 bg-indigo-50 border-indigo-300" data-key="²">x²</button>
+            <button class="key-btn py-2.5 text-base font-bold text-indigo-600 bg-indigo-50 border-indigo-300" data-key="³">x³</button>
+            <button class="key-btn py-2.5 text-base font-bold text-indigo-600 bg-indigo-50 border-indigo-300" data-key="⁴">x⁴</button>
+            <button class="key-btn py-2.5 text-sm bg-emerald-600 text-white hover:bg-emerald-700" data-key="DONE">完成</button>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                title: "乘法分配律遊戲",
+                ex1Inst: "請拖動或點擊蘋果獎勵給兩人",
+                ex2Inst: "請拖動或點擊西瓜獎勵給兩人",
+                ex3Inst: "請拖動或點擊 5 分配給兩人",
+                ex4Inst: "請獎勵 5 給括號內的數字，再填寫展開化簡後的結果",
+                demo2Inst: "請拖動或點擊蘋果和西瓜分別獎勵給兩人",
+                demo21Inst: "請依次拖動 3 和 5 到 🍎 與 🍉 展開，最後填寫合併後的數量",
+                playInst: "請拖動或點擊前面的數字到括號內的兩項，再填寫展開式",
+                play2Inst: "請依次拖動或點擊展開，先填寫四項化簡，再合併同類項",
+                next: "下一題",
+                check: "檢查",
+                correctTitle: "答對了！ 🎉",
+                correctMsg: "你成功運用了乘法分配律！",
+                stage4CorrectMsg: "非常好！四項化簡正確！現在請合併同類項：",
+                wrongTitle: "再試一次！ 🤔",
+                btnEx1: "示範 1", btnEx2: "示範 2", btnEx3: "示範 3", btnEx4: "示範 4", btnDemo2: "示範 2 (雙括號)", btnDemo21: "示範 2.1", btnPlay: "玩樂模式 1", btnPlay2: "玩樂模式 2",
+                signPlaceholder: "+/-",
+                term1Placeholder: "項 1",
+                term2Placeholder: "項 2",
+                term3Placeholder: "項 3",
+                term4Placeholder: "項 4",
+                kbNumLabel: "數字九宮格鍵盤",
+                kbAlphaLabel: "符號鍵盤 (3x3)",
+                btnSwitchAlpha: "切換符號 (x y a b c d ² ³ ⁴)",
+                btnSwitchNum: "切換數字 (123)"
+            },
+            en: {
+                title: "Distributive Property Game",
+                ex1Inst: "Please drag or tap the apple to award to two people",
+                ex2Inst: "Please drag or tap the watermelon to award to two people",
+                ex3Inst: "Please drag or tap 5 to distribute to two people",
+                ex4Inst: "Please award 5 into the bracket, then input the simplified result",
+                demo2Inst: "Please drag or tap the apple and watermelon to award to both people",
+                demo21Inst: "Drag 3 and 5 to 🍎 and 🍉 to expand, then fill in the combined totals",
+                playInst: "Drag or tap the multiplier to both terms, then fill in the expanded terms",
+                play2Inst: "Drag or tap terms to expand, fill in the 4 terms first, then combine like terms",
+                next: "Next",
+                check: "Check",
+                correctTitle: "Correct! 🎉",
+                correctMsg: "You successfully applied the Distributive Property!",
+                stage4CorrectMsg: "Great! 4 terms simplified. Now combine like terms:",
+                wrongTitle: "Try Again! 🤔",
+                btnEx1: "Example 1", btnEx2: "Example 2", btnEx3: "Example 3", btnEx4: "Example 4", btnDemo2: "Demo 2", btnDemo21: "Demo 2.1", btnPlay: "Play Mode 1", btnPlay2: "Play Mode 2",
+                signPlaceholder: "+/-",
+                term1Placeholder: "Term1",
+                term2Placeholder: "Term2",
+                term3Placeholder: "Term3",
+                term4Placeholder: "Term4",
+                kbNumLabel: "Number Keypad",
+                kbAlphaLabel: "Symbol Keypad (3x3)",
+                btnSwitchAlpha: "Switch to Symbols (x y a b c d ² ³ ⁴)",
+                btnSwitchNum: "Switch to Numbers (123)"
+            }
+        };
+
+        const modeOrder = ['ex1', 'ex2', 'ex3', 'ex4', 'play', 'demo2', 'demo21', 'play2'];
+
+        let currentLang = 'zh';
+        let currentMode = 'ex1';
+        let activeInputEl = null;
+
+        let gameState = {
+            targetsHit: 0,
+            requiredHits: 2,
+            itemType: '🍎',
+            demo2Hits: { apple: [false, false], watermelon: [false, false] },
+            demo2Stage2Hits: { apple: [false, false], watermelon: [false, false] },
+            demo21Hits: { num3: [false, false], num5: [false, false] },
+            demo21Stage2Hits: { num3: [false, false], num5: [false, false] },
+            play2Stage1: { xHits: [false, false], numHits: [false, false] },
+            play2Stage2: { xHits: [false, false], numHits: [false, false] },
+            play1Hits: [false, false],
+            playData: null,
+            play2Data: null
+        };
+
+        function getSmileySVG(mouthOpen = true) {
+            if (mouthOpen) {
+                return `
+                    <svg class="w-12 h-12 md:w-14 md:h-14 text-amber-500 inline-block pointer-events-none drop-shadow-md" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="#fde047" stroke="#d97706" stroke-width="4"/>
+                        <circle cx="35" cy="35" r="6" fill="#1e293b"/>
+                        <path d="M 50 50 L 90 30 A 40 40 0 0 1 90 70 Z" fill="#1e293b"/>
+                    </svg>
+                `;
+            } else {
+                return `
+                    <svg class="w-12 h-12 md:w-14 md:h-14 text-amber-500 inline-block pointer-events-none drop-shadow-md" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="#fde047" stroke="#d97706" stroke-width="4"/>
+                        <circle cx="35" cy="35" r="6" fill="#1e293b"/>
+                        <circle cx="65" cy="35" r="6" fill="#1e293b"/>
+                        <path d="M 25 60 Q 50 85 75 60" fill="none" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+                    </svg>
+                `;
+            }
+        }
+
+        function showToast(isCorrect, customMsg = '') {
+            const toast = document.getElementById('toast-message');
+            const title = document.getElementById('toast-title');
+            const body = document.getElementById('toast-body');
+            const t = translations[currentLang];
+
+            if (isCorrect) {
+                toast.className = 'toast-popup p-4 rounded-2xl shadow-2xl border bg-emerald-50/95 border-emerald-300 text-emerald-900';
+                title.textContent = t.correctTitle;
+                body.innerHTML = customMsg || t.correctMsg;
+            } else {
+                toast.className = 'toast-popup p-4 rounded-2xl shadow-2xl border bg-rose-50/95 border-rose-300 text-rose-900';
+                title.textContent = t.wrongTitle;
+                body.innerHTML = customMsg || 'Please try again!';
+            }
+
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 4200);
+        }
+
+        function showKeyboardFor(inputEl) {
+            activeInputEl = inputEl;
+            const kb = document.getElementById('virtual-keyboard');
+            kb.classList.remove('hidden');
+            setTimeout(() => {
+                inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+
+        function hideKeyboard() {
+            const kb = document.getElementById('virtual-keyboard');
+            if (kb) kb.classList.add('hidden');
+            activeInputEl = null;
+        }
+
+        function setupVirtualKeyboard() {
+            const kbPageToggle = document.getElementById('kb-page-toggle');
+            const kbNumPage = document.getElementById('kb-num-page');
+            const kbAlphaPage = document.getElementById('kb-alpha-page');
+            const kbLabel = document.getElementById('kb-label');
+
+            document.querySelectorAll('.key-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!activeInputEl) return;
+                    
+                    const key = btn.dataset.key;
+                    if (key === 'BACKSPACE') {
+                        activeInputEl.value = activeInputEl.value.slice(0, -1);
+                    } else if (key === 'CLEAR') {
+                        activeInputEl.value = '';
+                    } else if (key === 'DONE') {
+                        hideKeyboard();
+                    } else if (key === 'SPACE') {
+                        activeInputEl.value += ' ';
+                    } else if (['²', '³', '⁴', 'x²', 'x³', 'x⁴'].includes(key)) {
+                        const expChar = key.replace('x', '');
+                        const val = activeInputEl.value;
+                        if (val.length > 0) {
+                            activeInputEl.value += expChar;
+                        } else {
+                            activeInputEl.value = 'x' + expChar;
+                        }
+                    } else {
+                        if (activeInputEl.classList.contains('math-sign-input')) {
+                            if (key === '+' || key === '-') {
+                                activeInputEl.value = key;
+                            }
+                        } else {
+                            activeInputEl.value += key;
+                        }
+                    }
+                });
+            });
+
+            if (kbPageToggle) {
+                kbPageToggle.addEventListener('click', () => {
+                    const isNum = !kbNumPage.classList.contains('hidden');
+                    const t = translations[currentLang];
+                    if (isNum) {
+                        kbNumPage.classList.add('hidden');
+                        kbAlphaPage.classList.remove('hidden');
+                        kbPageToggle.textContent = t.btnSwitchNum;
+                        kbLabel.textContent = t.kbAlphaLabel;
+                    } else {
+                        kbAlphaPage.classList.add('hidden');
+                        kbNumPage.classList.remove('hidden');
+                        kbPageToggle.textContent = t.btnSwitchAlpha;
+                        kbLabel.textContent = t.kbNumLabel;
+                    }
+                });
+            }
+        }
+
+        function clearHistory() {
+            const ws = document.getElementById('game-workspace');
+            ws.innerHTML = '';
+            document.getElementById('check-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+        }
+
+        function createStepRow(id) {
+            const ws = document.getElementById('game-workspace');
+            const row = document.createElement('div');
+            row.id = id;
+            row.className = 'w-full flex flex-col items-center justify-center p-4 my-1 bg-white rounded-2xl shadow-md border border-indigo-100 transition-all duration-500';
+            ws.appendChild(row);
+            return row;
+        }
+
+        let selectedSourceEl = null;
+
+        function clearSourceSelection() {
+            if (selectedSourceEl) {
+                selectedSourceEl.classList.remove('draggable-selected');
+                selectedSourceEl = null;
+            }
+            document.querySelectorAll('.drop-target').forEach(t => {
+                t.classList.remove('target-active');
+            });
+        }
+
+        function makeDraggable(sourceEl, onDropCallback, getValidTargets) {
+            let clone = null;
+
+            function highlightTargets() {
+                const targets = getValidTargets();
+                targets.forEach(t => t.classList.add('target-active'));
+            }
+
+            sourceEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (selectedSourceEl === sourceEl) {
+                    clearSourceSelection();
+                } else {
+                    clearSourceSelection();
+                    selectedSourceEl = sourceEl;
+                    sourceEl.classList.add('draggable-selected');
+                    highlightTargets();
+                }
+            });
+
+            const onMove = (clientX, clientY) => {
+                if (!clone) return;
+                clone.style.left = clientX + 'px';
+                clone.style.top = clientY + 'px';
+
+                const targets = getValidTargets();
+                targets.forEach(t => {
+                    const rect = t.getBoundingClientRect();
+                    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+                        t.classList.add('target-hover');
+                    } else {
+                        t.classList.remove('target-hover');
+                    }
+                });
+            };
+
+            const onEnd = (clientX, clientY) => {
+                if (clone) {
+                    clone.remove();
+                    clone = null;
+                }
+                sourceEl.style.opacity = '1';
+
+                const targets = getValidTargets();
+                let dropped = false;
+                targets.forEach(t => {
+                    t.classList.remove('target-hover', 'target-active');
+                    const rect = t.getBoundingClientRect();
+                    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+                        onDropCallback(t);
+                        dropped = true;
+                    }
+                });
+                clearSourceSelection();
+            };
+
+            sourceEl.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                sourceEl.style.opacity = '0.35';
+                clone = sourceEl.cloneNode(true);
+                clone.classList.add('drag-clone');
+                document.body.appendChild(clone);
+                onMove(touch.clientX, touch.clientY);
+                highlightTargets();
+            }, { passive: true });
+
+            sourceEl.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    onMove(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: true });
+
+            sourceEl.addEventListener('touchend', (e) => {
+                const touch = e.changedTouches[0];
+                onEnd(touch.clientX, touch.clientY);
+            });
+
+            sourceEl.addEventListener('mousedown', (e) => {
+                sourceEl.style.opacity = '0.35';
+                clone = sourceEl.cloneNode(true);
+                clone.classList.add('drag-clone');
+                document.body.appendChild(clone);
+                onMove(e.clientX, e.clientY);
+                highlightTargets();
+
+                const mouseMoveHandler = (me) => onMove(me.clientX, me.clientY);
+                const mouseUpHandler = (me) => {
+                    window.removeEventListener('mousemove', mouseMoveHandler);
+                    window.removeEventListener('mouseup', mouseUpHandler);
+                    onEnd(me.clientX, me.clientY);
+                };
+
+                window.addEventListener('mousemove', mouseMoveHandler);
+                window.addEventListener('mouseup', mouseUpHandler);
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (selectedSourceEl) {
+                const targets = document.querySelectorAll('.drop-target.target-active');
+                targets.forEach(t => {
+                    if (t.contains(e.target) || t === e.target) {
+                        const clickHandler = t._onTargetClick;
+                        if (clickHandler) clickHandler();
+                    }
+                });
+                clearSourceSelection();
+            }
+        });
+
+        function awardItemToTarget(targetEl, itemSymbol) {
+            let container = targetEl.querySelector('.awarded-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'awarded-container';
+                targetEl.appendChild(container);
+            }
+            const badge = document.createElement('div');
+            badge.className = 'item-awarded';
+            badge.textContent = itemSymbol;
+            container.appendChild(badge);
+        }
+
+        function createStandardLevel(itemSymbol) {
+            clearHistory();
+            gameState.targetsHit = 0;
+            gameState.requiredHits = 2;
+            gameState.itemType = itemSymbol;
+
+            const step1 = createStepRow('step-1');
+            step1.innerHTML = `
+                <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-bold flex-wrap">
+                    <span id="source-item" class="draggable text-3xl md:text-5xl hover:scale-110 p-2.5 border-2 border-dashed border-amber-400 rounded-2xl bg-amber-50/80 shadow-sm">
+                        ${itemSymbol}
+                    </span>
+                    <span class="bracket b-l">(</span>
+                    <span class="drop-target face-target p-1 cursor-pointer" data-idx="0">
+                        <span class="eat-face-target">${getSmileySVG(true)}</span>
+                    </span>
+                    <span class="text-indigo-600 font-bold mx-2">+</span>
+                    <span class="drop-target face-target p-1 cursor-pointer" data-idx="1">
+                        <span class="eat-face-target">${getSmileySVG(true)}</span>
+                    </span>
+                    <span class="bracket b-r">)</span>
+                </div>
+            `;
+
+            const source = document.getElementById('source-item');
+            const targets = Array.from(step1.querySelectorAll('.face-target'));
+
+            targets.forEach(target => {
+                target._onTargetClick = () => {
+                    const idx = parseInt(target.dataset.idx);
+                    if (target.dataset.hit === 'true') return;
+                    target.dataset.hit = 'true';
+                    awardItemToTarget(target, itemSymbol);
+                    gameState.targetsHit++;
+                    checkStandardLevelProgress();
+                };
+            });
+
+            makeDraggable(source, (target) => {
+                target._onTargetClick();
+            }, () => targets.filter(t => t.dataset.hit !== 'true'));
+        }
+
+        function checkStandardLevelProgress() {
+            if (gameState.targetsHit >= gameState.requiredHits) {
+                setTimeout(() => {
+                    const step1 = document.getElementById('step-1');
+                    step1.querySelector('.b-l').classList.add('bracket-left-collapse');
+                    step1.querySelector('.b-r').classList.add('bracket-right-collapse');
+
+                    setTimeout(() => {
+                        const step2 = createStepRow('step-2');
+                        step2.innerHTML = `
+                            <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-bold flex-wrap">
+                                <span class="text-gray-400 font-bold mr-2">=</span>
+                                <span class="text-2xl md:text-4xl">${gameState.itemType}</span>
+                                <span class="eat-face-target">${getSmileySVG(true)}</span>
+                                <span class="text-indigo-600 font-bold mx-2">+</span>
+                                <span class="text-2xl md:text-4xl">${gameState.itemType}</span>
+                                <span class="eat-face-target">${getSmileySVG(true)}</span>
+                            </div>
+                        `;
+
+                        const nextBtn = document.getElementById('next-btn');
+                        nextBtn.classList.remove('hidden');
+                        nextBtn.textContent = translations[currentLang].next;
+                        nextBtn.onclick = () => {
+                            eatAnimationStandard(() => {
+                                autoAdvanceNextMode();
+                            });
+                        };
+                    }, 600);
+                }, 300);
+            }
+        }
+
+        function eatAnimationStandard(onComplete) {
+            const faces = document.querySelectorAll('.eat-face-target');
+            faces.forEach(f => {
+                f.classList.add('eating-anim');
+                f.innerHTML = getSmileySVG(false);
+            });
+            setTimeout(() => {
+                onComplete();
+            }, 800);
+        }
+
+        function autoAdvanceNextMode() {
+            const idx = modeOrder.indexOf(currentMode);
+            if (idx !== -1 && idx < modeOrder.length - 1) {
+                currentMode = modeOrder[idx + 1];
+                updateModeButtonsUI();
+                loadLevel();
+            }
+        }
+
+        function createMathLevel(numStr, varStr, constStr) {
+            clearHistory();
+            gameState.targetsHit = 0;
+            gameState.requiredHits = 2;
+
+            const step1 = createStepRow('step-1');
+            step1.innerHTML = `
+                <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-bold flex-wrap">
+                    <span id="source-item" class="draggable text-2xl md:text-4xl font-extrabold text-rose-600 p-2.5 border-2 border-dashed border-rose-300 rounded-2xl bg-rose-50 shadow-sm">
+                        ${numStr}
+                    </span>
+                    <span class="bracket b-l">(</span>
+                    <span class="drop-target math-target px-3 py-1 font-bold text-indigo-700" data-idx="0">${varStr}</span>
+                    <span class="text-indigo-600 font-bold mx-2">+</span>
+                    <span class="drop-target math-target px-3 py-1 font-bold text-indigo-700" data-idx="1">${constStr}</span>
+                    <span class="bracket b-r">)</span>
+                </div>
+            `;
+
+            const source = document.getElementById('source-item');
+            const targets = Array.from(step1.querySelectorAll('.math-target'));
+
+            targets.forEach(target => {
+                target._onTargetClick = () => {
+                    if (target.dataset.hit === 'true') return;
+                    target.dataset.hit = 'true';
+                    awardItemToTarget(target, numStr);
+                    gameState.targetsHit++;
+                    if (gameState.targetsHit >= gameState.requiredHits) {
+                        setTimeout(() => {
+                            step1.querySelector('.b-l').classList.add('bracket-left-collapse');
+                            step1.querySelector('.b-r').classList.add('bracket-right-collapse');
+
+                            setTimeout(() => {
+                                showMathLevelStep2(numStr, varStr, constStr);
+                            }, 600);
+                        }, 300);
+                    }
+                };
+            });
+
+            makeDraggable(source, (target) => {
+                target._onTargetClick();
+            }, () => targets.filter(t => t.dataset.hit !== 'true'));
+        }
+
+        function showMathLevelStep2(numStr, varStr, constStr) {
+            const step2 = createStepRow('step-2');
+            step2.innerHTML = `
+                <div class="flex items-center justify-center gap-1 sm:gap-2 text-xl md:text-3xl font-bold flex-wrap">
+                    <span class="text-gray-400 font-bold mr-1">=</span>
+                    <span class="text-rose-600 font-extrabold">${numStr}</span>
+                    <span class="text-gray-400">·</span>
+                    <span class="text-indigo-700">${varStr}</span>
+                    <span class="text-indigo-600 font-bold mx-2">+</span>
+                    <span class="text-rose-600 font-extrabold">${numStr}</span>
+                    <span class="text-gray-400">·</span>
+                    <span class="text-indigo-700">${constStr}</span>
+                </div>
+            `;
+
+            const step3 = createStepRow('step-3');
+            step3.innerHTML = `
+                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-3xl max-w-full overflow-x-auto">
+                    <span class="text-gray-400 font-bold mr-1">=</span>
+                    <input type="text" id="ex4-t1" class="input-box text-indigo-700 font-bold" placeholder="5x" readonly>
+                    <input type="text" id="ex4-sign" class="input-box math-sign-input text-emerald-600 font-bold w-12" placeholder="+/-" readonly>
+                    <input type="text" id="ex4-t2" class="input-box text-indigo-700 font-bold" placeholder="60" readonly>
+                </div>
+            `;
+
+            const t1 = document.getElementById('ex4-t1');
+            const sign = document.getElementById('ex4-sign');
+            const t2 = document.getElementById('ex4-t2');
+
+            [t1, sign, t2].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
+
+            const checkBtn = document.getElementById('check-btn');
+            checkBtn.classList.remove('hidden');
+            checkBtn.onclick = () => {
+                const v1 = t1.value.trim();
+                const vs = sign.value.trim();
+                const v2 = t2.value.trim();
+
+                if ((v1 === '5x' || v1 === '5·x') && vs === '+' && v2 === '60') {
+                    showToast(true);
+                    checkBtn.classList.add('hidden');
+                    const nextBtn = document.getElementById('next-btn');
+                    nextBtn.classList.remove('hidden');
+                    nextBtn.onclick = () => autoAdvanceNextMode();
+                } else {
+                    showToast(false, 'Expected answer: <b>5x + 60</b>');
+                }
+            };
+        }
+
+        function createPlayMode1Level() {
+            clearHistory();
+            const a = Math.floor(Math.random() * 6) + 2;
+            const b = Math.floor(Math.random() * 4) + 1;
+            const c = Math.floor(Math.random() * 8) + 2;
+            const isPlus = Math.random() > 0.3;
+            const signChar = isPlus ? '+' : '-';
+            const varChar = 'x';
+
+            const term1Str = b === 1 ? varChar : `${b}${varChar}`;
+            const exp1Val = b === 1 ? `${a}${varChar}` : `${a * b}${varChar}`;
+            const exp2Val = `${a * c}`;
+
+            gameState.playData = { a, b, c, isPlus, term1Str, exp1Val, exp2Val, signChar };
+            gameState.play1Hits = [false, false];
+
+            const step1 = createStepRow('step-1');
+            step1.innerHTML = `
+                <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-bold flex-wrap">
+                    <span id="play1-multiplier" class="draggable text-2xl md:text-4xl font-extrabold text-rose-600 p-2.5 border-2 border-dashed border-rose-300 rounded-2xl bg-rose-50 shadow-sm">
+                        ${a}
+                    </span>
+                    <span class="bracket b-l">(</span>
+                    <span class="drop-target play1-target px-3 py-1 font-bold text-indigo-700" data-idx="0">${term1Str}</span>
+                    <span class="text-indigo-600 font-bold mx-2">${signChar}</span>
+                    <span class="drop-target play1-target px-3 py-1 font-bold text-indigo-700" data-idx="1">${c}</span>
+                    <span class="bracket b-r">)</span>
+                </div>
+            `;
+
+            const mult = document.getElementById('play1-multiplier');
+            const targets = Array.from(step1.querySelectorAll('.play1-target'));
+
+            targets.forEach(target => {
+                target._onTargetClick = () => {
+                    const idx = parseInt(target.dataset.idx);
+                    if (gameState.play1Hits[idx]) return;
+                    gameState.play1Hits[idx] = true;
+                    awardItemToTarget(target, `${a}`);
+
+                    if (gameState.play1Hits[0] && gameState.play1Hits[1]) {
+                        setTimeout(() => {
+                            step1.querySelector('.b-l').classList.add('bracket-left-collapse');
+                            step1.querySelector('.b-r').classList.add('bracket-right-collapse');
+                            setTimeout(() => showPlay1InputStep(), 600);
+                        }, 300);
+                    }
+                };
+            });
+
+            makeDraggable(mult, (target) => {
+                target._onTargetClick();
+            }, () => targets.filter((_, idx) => !gameState.play1Hits[idx]));
+        }
+
+        function showPlay1InputStep() {
+            const pd = gameState.playData;
+            const t = translations[currentLang];
+
+            const step2 = createStepRow('step-2');
+            step2.innerHTML = `
+                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-3xl max-w-full overflow-x-auto">
+                    <span class="text-gray-400 font-bold mr-1">=</span>
+                    <input type="text" id="p1-t1" class="input-box text-indigo-700 font-bold" placeholder="${t.term1Placeholder}" readonly>
+                    <input type="text" id="p1-sign" class="input-box math-sign-input text-emerald-600 font-bold w-12" placeholder="${t.signPlaceholder}" readonly>
+                    <input type="text" id="p1-t2" class="input-box text-indigo-700 font-bold" placeholder="${t.term2Placeholder}" readonly>
+                </div>
+            `;
+
+            const t1 = document.getElementById('p1-t1');
+            const sign = document.getElementById('p1-sign');
+            const t2 = document.getElementById('p1-t2');
+
+            [t1, sign, t2].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
+
+            const checkBtn = document.getElementById('check-btn');
+            checkBtn.classList.remove('hidden');
+            checkBtn.onclick = () => {
+                const v1 = t1.value.trim();
+                const vs = sign.value.trim();
+                const v2 = t2.value.trim();
+
+                if (v1 === pd.exp1Val && vs === pd.signChar && v2 === pd.exp2Val) {
+                    showToast(true);
+                    checkBtn.classList.add('hidden');
+                    const nextBtn = document.getElementById('next-btn');
+                    nextBtn.classList.remove('hidden');
+                    nextBtn.onclick = () => createPlayMode1Level();
+                } else {
+                    showToast(false, `Expected answer: <b>${pd.exp1Val} ${pd.signChar} ${pd.exp2Val}</b>`);
+                }
+            };
+        }
+
+        function createDemo2Level() {
+            clearHistory();
+            gameState.demo2Hits = { apple: [false, false], watermelon: [false, false] };
+
+            const step1 = createStepRow('step-1');
+            step1.innerHTML = `
+                <div class="flex items-center justify-center gap-1 md:gap-2 flex-wrap text-2xl md:text-3xl font-bold">
+                    <span class="bracket">(</span>
+                    <span id="d2-apple" class="draggable text-3xl md:text-4xl p-1 hover:scale-110">🍎</span>
+                    <span class="text-indigo-600 font-bold">+</span>
+                    <span id="d2-watermelon" class="draggable text-3xl md:text-4xl p-1 hover:scale-110">🍉</span>
+                    <span class="bracket">(</span>
+                    <span class="drop-target d2-target p-1 cursor-pointer" data-idx="0">
+                        <span class="eat-face-target">${getSmileySVG(true)}</span>
+                    </span>
+                    <span class="text-indigo-600 font-bold mx-1">+</span>
+                    <span class="drop-target d2-target p-1 cursor-pointer" data-idx="1">
+                        <span class="eat-face-target">${getSmileySVG(true)}</span>
+                    </span>
+                    <span class="bracket">)</span>
+                </div>
+            `;
+
+            const apple = document.getElementById('d2-apple');
+            const watermelon = document.getElementById('d2-watermelon');
+            const targets = Array.from(step1.querySelectorAll('.d2-target'));
+
+            makeDraggable(apple, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.demo2Hits.apple[idx]) return;
+                gameState.demo2Hits.apple[idx] = true;
+                awardItemToTarget(target, '🍎');
+                checkDemo2Stage1Progress();
+            }, () => targets.filter((_, idx) => !gameState.demo2Hits.apple[idx]));
+
+            makeDraggable(watermelon, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.demo2Hits.watermelon[idx]) return;
+                gameState.demo2Hits.watermelon[idx] = true;
+                awardItemToTarget(target, '🍉');
+                checkDemo2Stage1Progress();
+            }, () => targets.filter((_, idx) => !gameState.demo2Hits.watermelon[idx]));
+        }
+
+        function checkDemo2Stage1Progress() {
+            const aDone = gameState.demo2Hits.apple[0] && gameState.demo2Hits.apple[1];
+            const wDone = gameState.demo2Hits.watermelon[0] && gameState.demo2Hits.watermelon[1];
+
+            if (aDone && wDone) {
+                setTimeout(() => setupDemo2Stage2Drag(), 500);
+            }
+        }
+
+        function setupDemo2Stage2Drag() {
+            clearSourceSelection();
+            const step2 = createStepRow('step-2');
+            step2.innerHTML = `
+                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center text-xl md:text-3xl font-bold">
+                    <span class="text-gray-400 font-bold">=</span>
+                    <span id="d2-s2-apple" class="draggable text-2xl md:text-4xl hover:scale-110">🍎</span>
+                    <span class="bracket d2-b1-l">(</span>
+                    <span class="drop-target d2-apple-target p-1 cursor-pointer" data-idx="0"><span class="eat-face-target">${getSmileySVG(true)}</span></span>
+                    <span class="text-indigo-600 font-bold">+</span>
+                    <span class="drop-target d2-apple-target p-1 cursor-pointer" data-idx="1"><span class="eat-face-target">${getSmileySVG(true)}</span></span>
+                    <span class="bracket d2-b1-r">)</span>
+
+                    <span class="text-indigo-600 font-bold mx-1">+</span>
+
+                    <span id="d2-s2-watermelon" class="draggable text-2xl md:text-4xl hover:scale-110">🍉</span>
+                    <span class="bracket d2-b2-l">(</span>
+                    <span class="drop-target d2-wm-target p-1 cursor-pointer" data-idx="0"><span class="eat-face-target">${getSmileySVG(true)}</span></span>
+                    <span class="text-indigo-600 font-bold">+</span>
+                    <span class="drop-target d2-wm-target p-1 cursor-pointer" data-idx="1"><span class="eat-face-target">${getSmileySVG(true)}</span></span>
+                    <span class="bracket d2-b2-r">)</span>
+                </div>
+            `;
+
+            const dragApple = document.getElementById('d2-s2-apple');
+            const dragWm = document.getElementById('d2-s2-watermelon');
+
+            gameState.demo2Stage2Hits = { apple: [false, false], watermelon: [false, false] };
+
+            makeDraggable(dragApple, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.demo2Stage2Hits.apple[idx]) return;
+                gameState.demo2Stage2Hits.apple[idx] = true;
+                awardItemToTarget(target, '🍎');
+                checkDemo2Stage2Progress();
+            }, () => Array.from(step2.querySelectorAll('.d2-apple-target')).filter((_, idx) => !gameState.demo2Stage2Hits.apple[idx]));
+
+            makeDraggable(dragWm, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.demo2Stage2Hits.watermelon[idx]) return;
+                gameState.demo2Stage2Hits.watermelon[idx] = true;
+                awardItemToTarget(target, '🍉');
+                checkDemo2Stage2Progress();
+            }, () => Array.from(step2.querySelectorAll('.d2-wm-target')).filter((_, idx) => !gameState.demo2Stage2Hits.watermelon[idx]));
+        }
+
+        function checkDemo2Stage2Progress() {
+            const aDone = gameState.demo2Stage2Hits.apple[0] && gameState.demo2Stage2Hits.apple[1];
+            const wDone = gameState.demo2Stage2Hits.watermelon[0] && gameState.demo2Stage2Hits.watermelon[1];
+
+            if (aDone && wDone) {
+                setTimeout(() => {
+                    const step2 = document.getElementById('step-2');
+                    step2.querySelectorAll('.d2-b1-l, .d2-b2-l').forEach(b => b.classList.add('bracket-left-collapse'));
+                    step2.querySelectorAll('.d2-b1-r, .d2-b2-r').forEach(b => b.classList.add('bracket-right-collapse'));
+
+                    setTimeout(() => {
+                        const step3 = createStepRow('step-3');
+                        step3.innerHTML = `
+                            <div class="flex items-center justify-center gap-1 md:gap-2 flex-wrap text-xl md:text-3xl font-bold">
+                                <span class="text-gray-400 font-bold mr-1">=</span>
+                                <span class="text-2xl md:text-4xl">🍎</span><span class="eat-face-target">${getSmileySVG(true)}</span>
+                                <span class="text-indigo-600 mx-1">+</span>
+                                <span class="text-2xl md:text-4xl">🍎</span><span class="eat-face-target">${getSmileySVG(true)}</span>
+                                <span class="text-indigo-600 mx-1">+</span>
+                                <span class="text-2xl md:text-4xl">🍉</span><span class="eat-face-target">${getSmileySVG(true)}</span>
+                                <span class="text-indigo-600 mx-1">+</span>
+                                <span class="text-2xl md:text-4xl">🍉</span><span class="eat-face-target">${getSmileySVG(true)}</span>
+                            </div>
+                        `;
+
+                        const nextBtn = document.getElementById('next-btn');
+                        nextBtn.classList.remove('hidden');
+                        nextBtn.textContent = translations[currentLang].next;
+                        nextBtn.onclick = () => {
+                            eatAnimationStandard(() => autoAdvanceNextMode());
+                        };
+                    }, 600);
+                }, 300);
+            }
+        }
+
+        function createDemo21Level() {
+            clearHistory();
+            gameState.demo21Hits = { num3: [false, false], num5: [false, false] };
+
+            const step1 = createStepRow('step-1');
+            step1.innerHTML = `
+                <div class="flex items-center justify-center gap-1 md:gap-2 flex-wrap text-2xl md:text-3xl font-bold">
+                    <span class="bracket">(</span>
+                    <span id="d21-num3-s1" class="draggable text-2xl md:text-4xl font-extrabold text-rose-600 p-1 hover:scale-110">3</span>
+                    <span class="text-indigo-600 font-bold">+</span>
+                    <span id="d21-num5-s1" class="draggable text-2xl md:text-4xl font-extrabold text-rose-600 p-1 hover:scale-110">5</span>
+                    <span class="bracket">)</span>
+                    <span class="bracket">(</span>
+                    <span class="drop-target d21-target p-1 cursor-pointer font-bold" data-idx="0">🍎</span>
+                    <span class="text-indigo-600 font-bold mx-1">+</span>
+                    <span class="drop-target d21-target p-1 cursor-pointer font-bold" data-idx="1">🍉</span>
+                    <span class="bracket">)</span>
+                </div>
+            `;
+
+            const drag3 = document.getElementById('d21-num3-s1');
+            const drag5 = document.getElementById('d21-num5-s1');
+            const targets = Array.from(step1.querySelectorAll('.d21-target'));
+
+            makeDraggable(drag3, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.demo21Hits.num3[idx]) return;
+                gameState.demo21Hits.num3[idx] = true;
+                awardItemToTarget(target, '3');
+                checkDemo21Stage1Progress();
+            }, () => targets.filter((_, idx) => !gameState.demo21Hits.num3[idx]));
+
+            makeDraggable(drag5, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.demo21Hits.num5[idx]) return;
+                gameState.demo21Hits.num5[idx] = true;
+                awardItemToTarget(target, '5');
+                checkDemo21Stage1Progress();
+            }, () => targets.filter((_, idx) => !gameState.demo21Hits.num5[idx]));
+        }
+
+        function checkDemo21Stage1Progress() {
+            const num3Done = gameState.demo21Hits.num3[0] && gameState.demo21Hits.num3[1];
+            const num5Done = gameState.demo21Hits.num5[0] && gameState.demo21Hits.num5[1];
+
+            if (num3Done && num5Done) {
+                setTimeout(() => setupDemo21Stage2Drag(), 500);
+            }
+        }
+
+        function setupDemo21Stage2Drag() {
+            clearSourceSelection();
+            const step2 = createStepRow('step-2');
+            step2.innerHTML = `
+                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center text-xl md:text-3xl font-bold">
+                    <span class="text-gray-400 font-bold">=</span>
+                    <span id="d21-num3" class="draggable text-2xl md:text-4xl mx-1 hover:scale-110 font-extrabold text-rose-600 z-20">3</span>
+                    <span class="bracket d21-b1-l">(</span>
+                    <span class="drop-target d21-3-target mx-1 p-1 font-bold" data-idx="0">🍎</span>
+                    <span class="text-indigo-600">+</span>
+                    <span class="drop-target d21-3-target mx-1 p-1 font-bold" data-idx="1">🍉</span>
+                    <span class="bracket d21-b1-r">)</span>
+
+                    <span class="mx-1 text-indigo-600">+</span>
+
+                    <span id="d21-num5" class="draggable text-2xl md:text-4xl mx-1 hover:scale-110 font-extrabold text-rose-600 z-20">5</span>
+                    <span class="bracket d21-b2-l">(</span>
+                    <span class="drop-target d21-5-target mx-1 p-1 font-bold" data-idx="0">🍎</span>
+                    <span class="text-indigo-600">+</span>
+                    <span class="drop-target d21-5-target mx-1 p-1 font-bold" data-idx="1">🍉</span>
+                    <span class="bracket d21-b2-r">)</span>
+                </div>
+            `;
+
+            const drag3 = document.getElementById('d21-num3');
+            const drag5 = document.getElementById('d21-num5');
+
+            gameState.demo21Stage2Hits = { num3: [false, false], num5: [false, false] };
+
+            makeDraggable(drag3, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.demo21Stage2Hits.num3[idx]) return;
+                gameState.demo21Stage2Hits.num3[idx] = true;
+
+                awardItemToTarget(target, '3');
+                checkDemo21Stage2Progress();
+            }, () => Array.from(step2.querySelectorAll('.d21-3-target')).filter((_, idx) => !gameState.demo21Stage2Hits.num3[idx]));
+
+            makeDraggable(drag5, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.demo21Stage2Hits.num5[idx]) return;
+                gameState.demo21Stage2Hits.num5[idx] = true;
+
+                awardItemToTarget(target, '5');
+                checkDemo21Stage2Progress();
+            }, () => Array.from(step2.querySelectorAll('.d21-5-target')).filter((_, idx) => !gameState.demo21Stage2Hits.num5[idx]));
+        }
+
+        function checkDemo21Stage2Progress() {
+            const num3Done = gameState.demo21Stage2Hits.num3[0] && gameState.demo21Stage2Hits.num3[1];
+            const num5Done = gameState.demo21Stage2Hits.num5[0] && gameState.demo21Stage2Hits.num5[1];
+
+            if (num3Done && num5Done) {
+                setTimeout(() => {
+                    const step2 = document.getElementById('step-2');
+                    step2.querySelectorAll('.d21-b1-l, .d21-b2-l').forEach(b => b.classList.add('bracket-left-collapse'));
+                    step2.querySelectorAll('.d21-b1-r, .d21-b2-r').forEach(b => b.classList.add('bracket-right-collapse'));
+
+                    setTimeout(() => {
+                        showDemo21FinalInputStep();
+                    }, 600);
+                }, 300);
+            }
+        }
+
+        function showDemo21FinalInputStep() {
+            const step3 = createStepRow('step-3');
+            step3.innerHTML = `
+                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center text-xl md:text-3xl font-bold">
+                    <span class="text-gray-400 font-bold">=</span>
+                    <span class="text-rose-600 font-extrabold">3</span><span>🍎</span>
+                    <span class="text-indigo-600 mx-1">+</span>
+                    <span class="text-rose-600 font-extrabold">3</span><span>🍉</span>
+                    <span class="text-indigo-600 mx-1">+</span>
+                    <span class="text-rose-600 font-extrabold">5</span><span>🍎</span>
+                    <span class="text-indigo-600 mx-1">+</span>
+                    <span class="text-rose-600 font-extrabold">5</span><span>🍉</span>
+                </div>
+            `;
+
+            const step4 = createStepRow('step-4');
+            step4.innerHTML = `
+                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-3xl max-w-full overflow-x-auto">
+                    <span class="text-gray-400 font-bold mr-1">=</span>
+                    <input type="text" id="d21-in1" class="input-box text-indigo-700 font-bold" placeholder="?" readonly>
+                    <span class="font-bold text-2xl md:text-4xl">🍎</span>
+                    <span class="font-bold text-indigo-600 mx-1">+</span>
+                    <input type="text" id="d21-in2" class="input-box text-indigo-700 font-bold" placeholder="?" readonly>
+                    <span class="font-bold text-2xl md:text-4xl">🍉</span>
+                </div>
+            `;
+
+            const in1 = document.getElementById('d21-in1');
+            const in2 = document.getElementById('d21-in2');
+
+            [in1, in2].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
+
+            const checkBtn = document.getElementById('check-btn');
+            checkBtn.classList.remove('hidden');
+            checkBtn.onclick = () => {
+                const v1 = in1.value.trim();
+                const v2 = in2.value.trim();
+
+                if (v1 === '8' && v2 === '8') {
+                    showToast(true);
+                    checkBtn.classList.add('hidden');
+                    const nextBtn = document.getElementById('next-btn');
+                    nextBtn.classList.remove('hidden');
+                    nextBtn.onclick = () => autoAdvanceNextMode();
+                } else {
+                    showToast(false, 'Expected answer: <b>8🍎 + 8🍉</b>');
+                }
+            };
+        }
+
+        function createPlayMode2Level() {
+            clearHistory();
+            const a = Math.floor(Math.random() * 4) + 1;
+            const b = Math.floor(Math.random() * 5) + 1;
+            const varChar = 'x';
+
+            const expTerm2 = `${a + b}x`;
+            const expTerm3 = `${a * b}`;
+
+            gameState.play2Data = { a, b, varChar, expTerm2, expTerm3 };
+            gameState.play2Stage1 = { xHits: [false, false], numHits: [false, false] };
+
+            const step1 = createStepRow('step-1');
+            step1.innerHTML = `
+                <div class="flex items-center justify-center gap-1 md:gap-2 flex-wrap text-2xl md:text-3xl font-bold">
+                    <span class="bracket border-l-4 border-rose-400 pl-1">(</span>
+                    <span id="p2-x" class="draggable font-extrabold text-rose-600 hover:scale-110 p-1">${varChar}</span>
+                    <span class="text-rose-600 font-bold">+</span>
+                    <span id="p2-num" class="draggable font-extrabold text-rose-600 hover:scale-110 p-1">${a}</span>
+                    <span class="bracket border-r-4 border-rose-400 pr-1">)</span>
+                    <span class="bracket">(</span>
+                    <span class="drop-target p2-target px-2 py-1 font-bold text-indigo-700" data-idx="0">${varChar}</span>
+                    <span class="text-indigo-600 font-bold mx-1">+</span>
+                    <span class="drop-target p2-target px-2 py-1 font-bold text-indigo-700" data-idx="1">${b}</span>
+                    <span class="bracket">)</span>
+                </div>
+            `;
+
+            const dragX = document.getElementById('p2-x');
+            const dragNum = document.getElementById('p2-num');
+            const targets = Array.from(step1.querySelectorAll('.p2-target'));
+
+            makeDraggable(dragX, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.play2Stage1.xHits[idx]) return;
+                gameState.play2Stage1.xHits[idx] = true;
+                awardItemToTarget(target, varChar);
+                checkPlay2Stage1Progress();
+            }, () => targets.filter((_, idx) => !gameState.play2Stage1.xHits[idx]));
+
+            makeDraggable(dragNum, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.play2Stage1.numHits[idx]) return;
+                gameState.play2Stage1.numHits[idx] = true;
+                awardItemToTarget(target, `${a}`);
+                checkPlay2Stage1Progress();
+            }, () => targets.filter((_, idx) => !gameState.play2Stage1.numHits[idx]));
+        }
+
+        function checkPlay2Stage1Progress() {
+            const xDone = gameState.play2Stage1.xHits[0] && gameState.play2Stage1.xHits[1];
+            const numDone = gameState.play2Stage1.numHits[0] && gameState.play2Stage1.numHits[1];
+
+            if (xDone && numDone) {
+                setTimeout(() => setupPlay2Stage2Drag(), 500);
+            }
+        }
+
+        function setupPlay2Stage2Drag() {
+            clearSourceSelection();
+            const p2 = gameState.play2Data;
+            const step2 = createStepRow('step-2');
+            step2.innerHTML = `
+                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center text-xl md:text-3xl font-bold">
+                    <span class="text-gray-400 font-bold">=</span>
+                    <span id="p2-s2-x" class="draggable text-2xl md:text-4xl hover:scale-110 font-extrabold text-rose-600">${p2.varChar}</span>
+                    <span class="bracket p2-b1-l">(</span>
+                    <span class="drop-target p2-x-target px-2 py-1 font-bold text-indigo-700" data-idx="0">${p2.varChar}</span>
+                    <span class="text-indigo-600">+</span>
+                    <span class="drop-target p2-x-target px-2 py-1 font-bold text-indigo-700" data-idx="1">${p2.b}</span>
+                    <span class="bracket p2-b1-r">)</span>
+
+                    <span class="text-indigo-600 font-bold mx-1">+</span>
+
+                    <span id="p2-s2-num" class="draggable text-2xl md:text-4xl hover:scale-110 font-extrabold text-rose-600">${p2.a}</span>
+                    <span class="bracket p2-b2-l">(</span>
+                    <span class="drop-target p2-num-target px-2 py-1 font-bold text-indigo-700" data-idx="0">${p2.varChar}</span>
+                    <span class="text-indigo-600">+</span>
+                    <span class="drop-target p2-num-target px-2 py-1 font-bold text-indigo-700" data-idx="1">${p2.b}</span>
+                    <span class="bracket p2-b2-r">)</span>
+                </div>
+            `;
+
+            const dragX = document.getElementById('p2-s2-x');
+            const dragNum = document.getElementById('p2-s2-num');
+
+            gameState.play2Stage2 = { xHits: [false, false], numHits: [false, false] };
+
+            makeDraggable(dragX, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.play2Stage2.xHits[idx]) return;
+                gameState.play2Stage2.xHits[idx] = true;
+                awardItemToTarget(target, p2.varChar);
+                checkPlay2Stage2Progress();
+            }, () => Array.from(step2.querySelectorAll('.p2-x-target')).filter((_, idx) => !gameState.play2Stage2.xHits[idx]));
+
+            makeDraggable(dragNum, (target) => {
+                const idx = parseInt(target.dataset.idx);
+                if (gameState.play2Stage2.numHits[idx]) return;
+                gameState.play2Stage2.numHits[idx] = true;
+                awardItemToTarget(target, `${p2.a}`);
+                checkPlay2Stage2Progress();
+            }, () => Array.from(step2.querySelectorAll('.p2-num-target')).filter((_, idx) => !gameState.play2Stage2.numHits[idx]));
+        }
+
+        function checkPlay2Stage2Progress() {
+            const xDone = gameState.play2Stage2.xHits[0] && gameState.play2Stage2.xHits[1];
+            const numDone = gameState.play2Stage2.numHits[0] && gameState.play2Stage2.numHits[1];
+
+            if (xDone && numDone) {
+                setTimeout(() => {
+                    const step2 = document.getElementById('step-2');
+                    step2.querySelectorAll('.p2-b1-l, .p2-b2-l').forEach(b => b.classList.add('bracket-left-collapse'));
+                    step2.querySelectorAll('.p2-b1-r, .p2-b2-r').forEach(b => b.classList.add('bracket-right-collapse'));
+
+                    setTimeout(() => {
+                        showPlay24TermInputStep();
+                    }, 600);
+                }, 300);
+            }
+        }
+
+        function showPlay24TermInputStep() {
+            const p2 = gameState.play2Data;
+            const t = translations[currentLang];
+
+            const step3 = createStepRow('step-3');
+            step3.innerHTML = `
+                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-2xl max-w-full overflow-x-auto">
+                    <span class="text-gray-400 font-bold mr-1">=</span>
+                    <input type="text" id="p2-4t-1" class="input-box text-indigo-700 font-bold" placeholder="${t.term1Placeholder}" readonly>
+                    <span class="font-bold text-indigo-600">+</span>
+                    <input type="text" id="p2-4t-2" class="input-box text-indigo-700 font-bold" placeholder="${t.term2Placeholder}" readonly>
+                    <span class="font-bold text-indigo-600">+</span>
+                    <input type="text" id="p2-4t-3" class="input-box text-indigo-700 font-bold" placeholder="${t.term3Placeholder}" readonly>
+                    <span class="font-bold text-indigo-600">+</span>
+                    <input type="text" id="p2-4t-4" class="input-box text-indigo-700 font-bold" placeholder="${t.term4Placeholder}" readonly>
+                </div>
+            `;
+
+            const in1 = document.getElementById('p2-4t-1');
+            const in2 = document.getElementById('p2-4t-2');
+            const in3 = document.getElementById('p2-4t-3');
+            const in4 = document.getElementById('p2-4t-4');
+
+            [in1, in2, in3, in4].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
+
+            const checkBtn = document.getElementById('check-btn');
+            checkBtn.classList.remove('hidden');
+            checkBtn.onclick = () => {
+                const v1 = in1.value.trim();
+                const v2 = in2.value.trim();
+                const v3 = in3.value.trim();
+                const v4 = in4.value.trim();
+
+                const exp1 = `${p2.varChar}²`;
+                const exp2 = `${p2.b}${p2.varChar}`;
+                const exp3 = `${p2.a}${p2.varChar}`;
+                const exp4 = `${p2.a * p2.b}`;
+
+                if ((v1 === exp1 || v1 === 'x^2') && 
+                    ((v2 === exp2 && v3 === exp3) || (v2 === exp3 && v3 === exp2)) && 
+                    v4 === exp4) {
+                    showToast(true, t.stage4CorrectMsg);
+                    checkBtn.classList.add('hidden');
+                    showPlay2CombineTermsStep();
+                } else {
+                    showToast(false, `Expected: <b>x² + ${exp2} + ${exp3} + ${exp4}</b>`);
+                }
+            };
+        }
+
+        function showPlay2CombineTermsStep() {
+            const p2 = gameState.play2Data;
+            const t = translations[currentLang];
+
+            const step4 = createStepRow('step-4');
+            step4.innerHTML = `
+                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-3xl max-w-full overflow-x-auto">
+                    <span class="text-gray-400 font-bold mr-1">=</span>
+                    <input type="text" id="p2-3t-1" class="input-box text-indigo-700 font-bold" placeholder="x²" readonly>
+                    <span class="font-bold text-indigo-600">+</span>
+                    <input type="text" id="p2-3t-2" class="input-box text-indigo-700 font-bold" placeholder="${p2.expTerm2}" readonly>
+                    <span class="font-bold text-indigo-600">+</span>
+                    <input type="text" id="p2-3t-3" class="input-box text-indigo-700 font-bold" placeholder="${p2.expTerm3}" readonly>
+                </div>
+            `;
+
+            const in1 = document.getElementById('p2-3t-1');
+            const in2 = document.getElementById('p2-3t-2');
+            const in3 = document.getElementById('p2-3t-3');
+
+            [in1, in2, in3].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
+
+            const checkBtn = document.getElementById('check-btn');
+            checkBtn.classList.remove('hidden');
+            checkBtn.onclick = () => {
+                const v1 = in1.value.trim();
+                const v2 = in2.value.trim();
+                const v3 = in3.value.trim();
+
+                if ((v1 === 'x²' || v1 === 'x^2') && v2 === p2.expTerm2 && v3 === p2.expTerm3) {
+                    showToast(true);
+                    checkBtn.classList.add('hidden');
+                    const nextBtn = document.getElementById('next-btn');
+                    nextBtn.classList.remove('hidden');
+                    nextBtn.onclick = () => createPlayMode2Level();
+                } else {
+                    showToast(false, `Expected answer: <b>x² + ${p2.expTerm2} + ${p2.expTerm3}</b>`);
+                }
+            };
+        }
+
+        function updateTranslations() {
+            const t = translations[currentLang];
+            const titleText = document.getElementById('title-text');
+            const langToggle = document.getElementById('lang-toggle');
+            const nextBtn = document.getElementById('next-btn');
+            const checkBtn = document.getElementById('check-btn');
+
+            if (titleText) titleText.textContent = t.title;
+            if (langToggle) langToggle.textContent = currentLang === 'zh' ? 'EN / 中' : '中 / EN';
+            
+            const modeTextMap = {
+                ex1: t.btnEx1, ex2: t.btnEx2, ex3: t.btnEx3, ex4: t.btnEx4,
+                play: t.btnPlay, demo2: t.btnDemo2, demo21: t.btnDemo21, play2: t.btnPlay2
+            };
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                const mode = btn.dataset.mode;
+                if (modeTextMap[mode]) btn.textContent = modeTextMap[mode];
+            });
+            
+            if (nextBtn && !nextBtn.classList.contains('hidden')) nextBtn.textContent = t.next;
+            if (checkBtn && !checkBtn.classList.contains('hidden')) checkBtn.textContent = t.check;
+
+            updateInstructionText();
+        }
+
+        function updateInstructionText() {
+            const t = translations[currentLang];
+            const instruction = document.getElementById('instruction');
+            if (!instruction) return;
+            if (currentMode === 'ex1') instruction.textContent = t.ex1Inst;
+            else if (currentMode === 'ex2') instruction.textContent = t.ex2Inst;
+            else if (currentMode === 'ex3') instruction.textContent = t.ex3Inst;
+            else if (currentMode === 'ex4') instruction.textContent = t.ex4Inst;
+            else if (currentMode === 'demo2') instruction.textContent = t.demo2Inst;
+            else if (currentMode === 'demo21') instruction.textContent = t.demo21Inst;
+            else if (currentMode === 'play') instruction.textContent = t.playInst;
+            else if (currentMode === 'play2') instruction.textContent = t.play2Inst;
+        }
+
+        function updateModeButtonsUI() {
+            document.querySelectorAll('.mode-btn').forEach(b => {
+                const m = b.dataset.mode;
+                if (m === currentMode) {
+                    b.className = 'mode-btn mode-btn-active';
+                } else {
+                    b.className = 'mode-btn mode-btn-inactive';
+                }
+            });
+        }
+
+        function loadLevel() {
+            updateTranslations();
+            hideKeyboard();
+            if (currentMode === 'ex1') createStandardLevel('🍎');
+            else if (currentMode === 'ex2') createStandardLevel('🍉');
+            else if (currentMode === 'ex3') createStandardLevel('5');
+            else if (currentMode === 'ex4') createMathLevel('5', 'x', '12');
+            else if (currentMode === 'demo2') createDemo2Level();
+            else if (currentMode === 'demo21') createDemo21Level();
+            else if (currentMode === 'play') createPlayMode1Level();
+            else if (currentMode === 'play2') createPlayMode2Level();
+        }
+
+        window.onload = () => {
+            setupVirtualKeyboard();
+
+            const langToggle = document.getElementById('lang-toggle');
+            if (langToggle) {
+                langToggle.addEventListener('click', () => {
+                    currentLang = currentLang === 'zh' ? 'en' : 'zh';
+                    updateTranslations();
+                });
+            }
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentMode = btn.dataset.mode;
+                    updateModeButtonsUI();
+                    loadLevel();
+                });
+            });
+
+            updateModeButtonsUI();
+            loadLevel();
+        };
+    </script>
+</body>
+</html>
