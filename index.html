@@ -1,1568 +1,966 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distributive Property Game - 乘法分配律遊戲</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Distributive Property Game</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+TC:wght@500;700;900&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Nunito:wght@700&display=swap');
+
         body {
-            font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdf4; /* Light green background to match video */
+            touch-action: manipulation;
+            overflow-x: hidden;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: manipulation;
-            background: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 100%);
         }
 
-        .bracket {
-            display: inline-block;
-            font-size: 2.5rem;
-            font-weight: 300;
-            color: #4f46e5;
-            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease;
-            transform-origin: bottom center;
-        }
-
-        .bracket-left-collapse {
-            transform: rotate(-90deg) translateY(12px) scale(0.8);
-            opacity: 0.15;
-        }
-
-        .bracket-right-collapse {
-            transform: rotate(90deg) translateY(12px) scale(0.8);
-            opacity: 0.15;
-        }
-
-        .draggable {
-            cursor: grab;
-            touch-action: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        
-        .draggable:active {
-            cursor: grabbing;
-        }
-
-        .draggable-selected {
-            box-shadow: 0 0 0 4px #f59e0b;
-            border-radius: 9999px;
-            animation: pulse-ring 1.2s infinite;
-        }
-
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
-            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
-
-        .drop-target {
-            min-width: 52px;
-            min-height: 52px;
-            border: 2.5px dashed #a5b4fc;
-            border-radius: 16px;
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            transition: all 0.25s ease;
-            background-color: #ffffff;
-        }
-
-        .drop-target.target-active {
-            border-color: #6366f1;
-            background-color: #e0e7ff;
-            transform: scale(1.05);
-        }
-
-        .drop-target.target-hover {
-            border-color: #10b981;
-            background-color: #d1fae5;
-            transform: scale(1.1);
-        }
-
-        .awarded-container {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column-reverse;
-            align-items: center;
-            gap: 2px;
-            margin-bottom: 4px;
-            z-index: 30;
-            pointer-events: none;
-        }
-
-        .item-awarded {
-            font-size: 1.25rem;
-            font-weight: bold;
-            line-height: 1;
-            background: #ffffff;
-            border: 2px solid #10b981;
-            color: #047857;
-            padding: 2px 8px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            white-space: nowrap;
-        }
-
-        @keyframes popIn {
-            0% { transform: scale(0); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .drag-clone {
-            position: fixed;
-            pointer-events: none;
-            z-index: 9999;
-            transform: translate(-50%, -100%) scale(1.25);
-            filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.2));
-            background: rgba(255, 255, 255, 0.95);
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 2.5px solid #10b981;
-        }
-
-        .eating-anim {
-            animation: eatSwallow 0.6s ease-in-out forwards;
-        }
-
-        @keyframes eatSwallow {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3) rotate(10deg); }
-            100% { transform: scale(1) rotate(0deg); }
-        }
-
-        .input-box {
-            width: 3.75rem;
-            height: 3rem;
-            text-align: center;
-            font-size: 1.35rem;
-            font-weight: 700;
-            border: 2.5px solid #cbd5e1;
-            border-radius: 12px;
-            background-color: #ffffff;
-            outline: none;
-            transition: all 0.2s;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
-        }
-
-        .input-box:focus {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
-        }
-
-        .custom-keyboard {
-            background-color: #ffffff;
-            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12);
-            border-top-left-radius: 24px;
-            border-top-right-radius: 24px;
-        }
-
-        .key-btn {
-            background-color: #f8fafc;
-            color: #1e293b;
-            font-weight: 700;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 3px 0 #cbd5e1;
-            transition: all 0.1s;
-        }
-
-        .key-btn:active {
-            transform: translateY(3px);
-            box-shadow: none;
-            background-color: #e2e8f0;
-        }
-
-        .toast-popup {
-            position: fixed;
-            top: 5rem;
-            right: 1.25rem;
-            z-index: 50;
-            max-width: 22rem;
-            backdrop-filter: blur(12px);
-            animation: slideInRight 0.3s ease-out;
-        }
-
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        .math-font {
+            font-family: 'Nunito', sans-serif;
         }
 
         .mode-btn {
-            padding: 8px 14px;
-            font-size: 0.875rem;
-            font-weight: 700;
-            border-radius: 12px;
-            transition: all 0.2s ease;
-            white-space: nowrap;
+            transition: all 0.2s;
+            border-bottom: 4px solid rgba(0,0,0,0.1);
+        }
+        .mode-btn:active {
+            transform: translateY(2px);
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+        }
+        .mode-btn.active {
+            filter: brightness(0.9);
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+            transform: translateY(2px);
         }
 
-        .mode-btn-active {
-            background-color: #4f46e5;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
-            transform: scale(1.03);
+        /* Pacman Image Styling */
+        .pacman-wrapper {
+            position: relative;
+            width: 55px; height: 55px;
+            min-width: 55px; min-height: 55px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .pacman-open, .pacman-closed {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            transition: transform 0.2s;
+        }
+        .pacman-closed {
+            opacity: 0;
+        }
+        .chomp .pacman-open {
+            animation: eat-open 0.5s infinite;
+        }
+        .chomp .pacman-closed {
+            animation: eat-closed 0.5s infinite;
+        }
+        @keyframes eat-open {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0; transform: scale(1.05); }
+        }
+        @keyframes eat-closed {
+            0%, 100% { opacity: 0; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
         }
 
-        .mode-btn-inactive {
-            background-color: #ffffff;
-            color: #475569;
-            border: 1px solid #e2e8f0;
+        /* Dragging & Targets */
+        .drag-source {
+            display: inline-block;
+            cursor: grab;
+            transition: transform 0.2s;
+            z-index: 20;
+            position: relative;
+        }
+        .drag-source:active { cursor: grabbing; }
+
+        .target-area {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            min-height: 80px;
+            margin-top: -30px; /* Overlap slightly */
+        }
+        .item-slot {
+            height: 40px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+        
+        .dropped-item {
+            animation: dropBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes dropBounce {
+            0% { transform: translateY(-20px) scale(0.5); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
         }
 
-        .mode-btn-inactive:hover {
-            background-color: #f1f5f9;
-            color: #1e293b;
+        /* Brackets */
+        .bracket {
+            font-size: 3.5rem;
+            color: #374151; /* Dark gray */
+            transition: all 0.5s;
+            display: inline-block;
+        }
+        .bracket.hide {
+            opacity: 0;
+            transform: scale(0.5);
+            width: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Custom Keyboard */
+        .keyboard-key {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            height: 3.5rem;
+            transition: background 0.1s;
+        }
+        .keyboard-key:active { background: #e5e7eb; }
+        
+        .term-input {
+            min-width: 60px;
+            height: 50px;
+            border-bottom: 3px solid #9ca3af;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 5px;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+        .term-input.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        #drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            display: none;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+        }
+
+        .highlight-target {
+            background: rgba(74, 222, 128, 0.2);
+            border-radius: 1rem;
+            outline: 2px dashed #4ade80;
+        }
+        
+        .stage-card {
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            padding: 2rem 1rem;
+            width: 100%;
+            max-w: 600px;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-between pb-32">
-    <!-- Header Navigation -->
-    <header class="w-full bg-white/80 backdrop-blur-md shadow-sm border-b border-indigo-100 sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">✨</span>
-                <h1 id="title-text" class="text-xl md:text-2xl font-extrabold text-indigo-700 tracking-tight">
-                    乘法分配律遊戲
-                </h1>
-            </div>
-            <button id="lang-toggle" class="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-xl font-bold text-sm transition">
-                EN / 中
-            </button>
-        </div>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Top Green Bar -->
+    <div class="h-4 bg-green-500 w-full"></div>
+
+    <header class="p-4 flex justify-between items-center z-10">
+        <div class="font-bold text-gray-500">Distributive Property</div>
+        <button id="lang-toggle" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">中文</button>
     </header>
 
-    <!-- Mode Selector Navigation -->
-    <nav class="w-full bg-white/50 border-b border-indigo-50 p-2.5 flex flex-wrap justify-center gap-2 z-10 shadow-inner">
-        <button class="mode-btn mode-btn-inactive" data-mode="ex1">示範 1</button>
-        <button class="mode-btn mode-btn-inactive" data-mode="ex2">示範 2</button>
-        <button class="mode-btn mode-btn-inactive" data-mode="ex3">示範 3</button>
-        <button class="mode-btn mode-btn-inactive" data-mode="ex4">示範 4</button>
-        <button class="mode-btn mode-btn-inactive" data-mode="play">玩樂模式 1</button>
-        <button class="mode-btn mode-btn-inactive" data-mode="demo2">示範 2 (雙括號)</button>
-        <button class="mode-btn mode-btn-inactive" data-mode="demo21">示範 2.1</button>
-        <button class="mode-btn mode-btn-inactive" data-mode="play2">玩樂模式 2</button>
-    </nav>
+    <!-- Mode Selection Grid -->
+    <div class="bg-[#dcfce7] p-4 mx-4 rounded-2xl flex flex-wrap justify-center gap-3 shadow-sm max-w-2xl sm:mx-auto">
+        <button class="mode-btn px-4 py-2 bg-green-500 text-white rounded-xl font-bold" data-mode="demo1" data-step="1">Example 1</button>
+        <button class="mode-btn px-4 py-2 bg-green-400 text-white rounded-xl font-bold" data-mode="demo1" data-step="2">Example 2</button>
+        <button class="mode-btn px-4 py-2 bg-green-400 text-white rounded-xl font-bold" data-mode="demo1" data-step="3">Example 3</button>
+        <button class="mode-btn px-4 py-2 bg-green-300 text-gray-800 rounded-xl font-bold" data-mode="demo1" data-step="4">Example 4</button>
+        <button class="mode-btn px-4 py-2 bg-purple-300 text-purple-900 rounded-xl font-bold" data-mode="demo2">Demo 2</button>
+        <button class="mode-btn px-4 py-2 bg-orange-300 text-orange-900 rounded-xl font-bold" data-mode="play1">Play Mode 1</button>
+        <button class="mode-btn px-4 py-2 bg-pink-300 text-pink-900 rounded-xl font-bold" data-mode="play2">Play Mode 2</button>
+    </div>
 
-    <!-- Main Game Canvas -->
-    <main class="w-full max-w-4xl flex-1 flex flex-col items-center p-4 relative">
-        <div id="instruction-card" class="w-full bg-white border-2 border-indigo-100 rounded-2xl p-4 mb-6 shadow-md text-center transition-all duration-300">
-            <p id="instruction" class="text-lg md:text-xl font-bold text-indigo-900"></p>
+    <!-- Main Game Area -->
+    <main class="flex-1 w-full px-4 py-6 flex flex-col items-center">
+        
+        <!-- Instruction Text -->
+        <div class="bg-white px-6 py-4 rounded-2xl shadow-sm mb-6 w-full max-w-2xl text-center border border-gray-100">
+            <h2 id="instruction-text" class="text-xl font-bold text-gray-800">
+                Please award the apple to two people
+            </h2>
         </div>
 
-        <div id="game-workspace" class="w-full flex flex-col items-center gap-5">
-            <!-- Dynamic step rows generated here -->
+        <!-- Stage Card -->
+        <div class="stage-card relative overflow-hidden" id="stage-card">
+            
+            <!-- Original Equation Row -->
+            <div id="row-1" class="flex items-center text-4xl gap-3 transition-all duration-700 font-bold math-font relative z-10">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Expanded Result Row (Hidden initially) -->
+            <div id="row-2" class="flex items-center text-4xl gap-3 mt-6 opacity-0 transition-opacity duration-700 font-bold math-font hidden z-10">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Input Result Row (For Play Mode) -->
+            <div id="row-input" class="flex items-center flex-wrap justify-center text-3xl gap-2 mt-6 opacity-0 transition-opacity duration-700 font-bold math-font hidden w-full z-10">
+                <div class="mx-2">=</div>
+                <div id="input-t1" class="term-input active" onclick="setActiveInput('t1')"></div>
+                <div id="input-op" class="term-input w-12 text-center" onclick="toggleOperator()">+</div>
+                <div id="input-t2" class="term-input" onclick="setActiveInput('t2')"></div>
+                <button id="check-btn" class="ml-4 px-6 py-2 bg-blue-500 text-white rounded-lg text-xl shadow-md active:translate-y-1">Check</button>
+            </div>
+            
+            <!-- Play Mode 2 Specific Multi-step input -->
+             <div id="row-input-pm2" class="flex items-center flex-wrap justify-center text-3xl gap-2 mt-6 opacity-0 transition-opacity duration-700 font-bold math-font hidden w-full z-10">
+                <div class="mx-2">=</div>
+                <div id="pm2-t1" class="term-input active" onclick="setActiveInput('pm2_t1')"></div>
+                <div id="pm2-op1" class="term-input w-10 text-center" onclick="toggleOperatorPM2(1)">+</div>
+                <div id="pm2-t2" class="term-input" onclick="setActiveInput('pm2_t2')"></div>
+                <div id="pm2-op2" class="term-input w-10 text-center" onclick="toggleOperatorPM2(2)">+</div>
+                <div id="pm2-t3" class="term-input" onclick="setActiveInput('pm2_t3')"></div>
+                <button id="check-btn-pm2" class="ml-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-lg shadow-md active:translate-y-1">Check</button>
+            </div>
+
+            <!-- Feedback Bubble -->
+            <div id="feedback-bubble" class="absolute right-4 top-4 px-4 py-2 rounded-xl text-white font-bold opacity-0 transition-opacity duration-300 hidden">
+                <span id="feedback-icon"></span> <span id="feedback-msg"></span>
+            </div>
         </div>
 
-        <div class="mt-8 flex gap-4 justify-center items-center">
-            <button id="check-btn" class="hidden px-8 py-3 bg-emerald-500 text-white font-bold text-lg rounded-2xl shadow-lg hover:bg-emerald-600 active:scale-95 transition">
-                檢查
-            </button>
-            <button id="next-btn" class="hidden px-8 py-3 bg-indigo-600 text-white font-bold text-lg rounded-2xl shadow-lg hover:bg-indigo-700 active:scale-95 transition">
-                下一題
-            </button>
-        </div>
+        <!-- Next Button -->
+        <button id="next-btn" class="mt-8 px-10 py-3 bg-blue-500 text-white rounded-full text-xl font-bold shadow-lg hover:bg-blue-600 active:scale-95 transition hidden">
+            Next
+        </button>
+
     </main>
 
-    <!-- Feedback Toast -->
-    <div id="toast-message" class="toast-popup hidden p-4 rounded-2xl shadow-2xl border text-sm md:text-base font-semibold">
-        <div id="toast-title" class="font-bold text-base md:text-lg mb-1"></div>
-        <div id="toast-body" class="text-gray-700"></div>
-    </div>
+    <!-- Custom Keyboard -->
+    <div id="keyboard" class="fixed bottom-0 left-0 w-full bg-gray-200 p-2 shadow-[0_-4px_6px_rgba(0,0,0,0.1)] transform translate-y-full transition-transform duration-300 z-50">
+        <div class="max-w-3xl mx-auto flex flex-col gap-2 relative">
+             <button onclick="hideKeyboard()" class="absolute -top-10 right-2 bg-gray-300 px-4 py-1 rounded-t-lg font-bold text-gray-700 shadow-sm">▼ Close</button>
+            <!-- Page 1: Numbers -->
+            <div id="kb-page-1" class="grid grid-cols-4 gap-2">
+                <button class="keyboard-key" onclick="typeKey('7')">7</button>
+                <button class="keyboard-key" onclick="typeKey('8')">8</button>
+                <button class="keyboard-key" onclick="typeKey('9')">9</button>
+                <button class="keyboard-key bg-red-100 text-red-600" onclick="typeKey('BACK')">⌫</button>
+                
+                <button class="keyboard-key" onclick="typeKey('4')">4</button>
+                <button class="keyboard-key" onclick="typeKey('5')">5</button>
+                <button class="keyboard-key" onclick="typeKey('6')">6</button>
+                <button class="keyboard-key bg-blue-100 text-blue-600 text-lg" onclick="toggleKbPage()">xy²...</button>
+                
+                <button class="keyboard-key" onclick="typeKey('1')">1</button>
+                <button class="keyboard-key" onclick="typeKey('2')">2</button>
+                <button class="keyboard-key" onclick="typeKey('3')">3</button>
+                <button class="keyboard-key text-blue-500" onclick="typeKey('+')">+</button>
+                
+                <button class="keyboard-key col-span-2" onclick="typeKey('0')">0</button>
+                <button class="keyboard-key" onclick="typeKey('.')">.</button>
+                <button class="keyboard-key text-red-500" onclick="typeKey('-')">-</button>
+            </div>
 
-    <!-- On-screen Custom Keypad -->
-    <div id="virtual-keyboard" class="fixed bottom-0 left-0 w-full custom-keyboard hidden p-3.5 z-40 flex flex-col items-center">
-        <div class="w-full max-w-md flex justify-between items-center mb-2 px-2">
-            <span class="text-xs font-bold text-gray-500" id="kb-label">數字九宮格鍵盤</span>
-            <button id="kb-page-toggle" class="bg-indigo-600 text-white text-xs px-3.5 py-1.5 rounded-full font-bold hover:bg-indigo-700 shadow-sm transition">
-                切換符號 (x y a b c d ² ³ ⁴)
-            </button>
-        </div>
-        
-        <div id="kb-num-page" class="w-full max-w-md grid grid-cols-4 gap-2">
-            <button class="key-btn py-2.5 text-lg" data-key="7">7</button>
-            <button class="key-btn py-2.5 text-lg" data-key="8">8</button>
-            <button class="key-btn py-2.5 text-lg" data-key="9">9</button>
-            <button class="key-btn py-2.5 text-sm bg-amber-100 text-amber-900 border-amber-300" data-key="BACKSPACE">⌫</button>
-
-            <button class="key-btn py-2.5 text-lg" data-key="4">4</button>
-            <button class="key-btn py-2.5 text-lg" data-key="5">5</button>
-            <button class="key-btn py-2.5 text-lg" data-key="6">6</button>
-            <button class="key-btn py-2.5 text-sm bg-slate-200 text-slate-800" data-key="CLEAR">C</button>
-
-            <button class="key-btn py-2.5 text-lg" data-key="1">1</button>
-            <button class="key-btn py-2.5 text-lg" data-key="2">2</button>
-            <button class="key-btn py-2.5 text-lg" data-key="3">3</button>
-            <button class="key-btn py-2.5 text-sm bg-emerald-600 text-white hover:bg-emerald-700" data-key="DONE">完成</button>
-
-            <button class="key-btn py-2.5 text-lg text-emerald-600 bg-emerald-50 border-emerald-300" data-key="+">+</button>
-            <button class="key-btn py-2.5 text-lg" data-key="0">0</button>
-            <button class="key-btn py-2.5 text-lg text-rose-600 bg-rose-50 border-rose-300" data-key="-">-</button>
-            <button class="key-btn py-2.5 text-xs text-gray-500 bg-gray-100" data-key="SPACE">空格</button>
-        </div>
-
-        <div id="kb-alpha-page" class="w-full max-w-md grid grid-cols-4 gap-2 hidden">
-            <button class="key-btn py-2.5 text-base" data-key="x">x</button>
-            <button class="key-btn py-2.5 text-base" data-key="y">y</button>
-            <button class="key-btn py-2.5 text-base" data-key="a">a</button>
-            <button class="key-btn py-2.5 text-sm bg-amber-100 text-amber-900 border-amber-300" data-key="BACKSPACE">⌫</button>
-
-            <button class="key-btn py-2.5 text-base" data-key="b">b</button>
-            <button class="key-btn py-2.5 text-base" data-key="c">c</button>
-            <button class="key-btn py-2.5 text-base" data-key="d">d</button>
-            <button class="key-btn py-2.5 text-sm bg-slate-200 text-slate-800" data-key="CLEAR">C</button>
-
-            <button class="key-btn py-2.5 text-base font-bold text-indigo-600 bg-indigo-50 border-indigo-300" data-key="²">x²</button>
-            <button class="key-btn py-2.5 text-base font-bold text-indigo-600 bg-indigo-50 border-indigo-300" data-key="³">x³</button>
-            <button class="key-btn py-2.5 text-base font-bold text-indigo-600 bg-indigo-50 border-indigo-300" data-key="⁴">x⁴</button>
-            <button class="key-btn py-2.5 text-sm bg-emerald-600 text-white hover:bg-emerald-700" data-key="DONE">完成</button>
+            <!-- Page 2: Letters and Powers -->
+            <div id="kb-page-2" class="grid grid-cols-4 gap-2 hidden">
+                <button class="keyboard-key" onclick="typeKey('x')">x</button>
+                <button class="keyboard-key" onclick="typeKey('y')">y</button>
+                <button class="keyboard-key" onclick="typeKey('a')">a</button>
+                <button class="keyboard-key bg-red-100 text-red-600" onclick="typeKey('BACK')">⌫</button>
+                
+                <button class="keyboard-key" onclick="typeKey('b')">b</button>
+                <button class="keyboard-key" onclick="typeKey('c')">c</button>
+                <button class="keyboard-key" onclick="typeKey('d')">d</button>
+                <button class="keyboard-key bg-blue-100 text-blue-600 text-lg" onclick="toggleKbPage()">123...</button>
+                
+                <button class="keyboard-key" onclick="typeKey('²')">²</button>
+                <button class="keyboard-key" onclick="typeKey('³')">³</button>
+                <button class="keyboard-key" onclick="typeKey('⁴')">⁴</button>
+                <button class="keyboard-key text-blue-500" onclick="typeKey('+')">+</button>
+            </div>
         </div>
     </div>
+
+    <div id="drag-ghost"></div>
 
     <script>
-        const translations = {
-            zh: {
-                title: "乘法分配律遊戲",
-                ex1Inst: "請拖動或點擊蘋果獎勵給兩人",
-                ex2Inst: "請拖動或點擊西瓜獎勵給兩人",
-                ex3Inst: "請拖動或點擊 5 分配給兩人",
-                ex4Inst: "請獎勵 5 給括號內的數字，再填寫展開化簡後的結果",
-                demo2Inst: "請拖動或點擊蘋果和西瓜分別獎勵給兩人",
-                demo21Inst: "請依次拖動 3 和 5 到 🍎 與 🍉 展開，最後填寫合併後的數量",
-                playInst: "請拖動或點擊前面的數字到括號內的兩項，再填寫展開式",
-                play2Inst: "請依次拖動或點擊展開，先填寫四項化簡，再合併同類項",
-                next: "下一題",
-                check: "檢查",
-                correctTitle: "答對了！ 🎉",
-                correctMsg: "你成功運用了乘法分配律！",
-                stage4CorrectMsg: "非常好！四項化簡正確！現在請合併同類項：",
-                wrongTitle: "再試一次！ 🤔",
-                btnEx1: "示範 1", btnEx2: "示範 2", btnEx3: "示範 3", btnEx4: "示範 4", btnDemo2: "示範 2 (雙括號)", btnDemo21: "示範 2.1", btnPlay: "玩樂模式 1", btnPlay2: "玩樂模式 2",
-                signPlaceholder: "+/-",
-                term1Placeholder: "項 1",
-                term2Placeholder: "項 2",
-                term3Placeholder: "項 3",
-                term4Placeholder: "項 4",
-                kbNumLabel: "數字九宮格鍵盤",
-                kbAlphaLabel: "符號鍵盤 (3x3)",
-                btnSwitchAlpha: "切換符號 (x y a b c d ² ³ ⁴)",
-                btnSwitchNum: "切換數字 (123)"
-            },
+        const dict = {
             en: {
-                title: "Distributive Property Game",
-                ex1Inst: "Please drag or tap the apple to award to two people",
-                ex2Inst: "Please drag or tap the watermelon to award to two people",
-                ex3Inst: "Please drag or tap 5 to distribute to two people",
-                ex4Inst: "Please award 5 into the bracket, then input the simplified result",
-                demo2Inst: "Please drag or tap the apple and watermelon to award to both people",
-                demo21Inst: "Drag 3 and 5 to 🍎 and 🍉 to expand, then fill in the combined totals",
-                playInst: "Drag or tap the multiplier to both terms, then fill in the expanded terms",
-                play2Inst: "Drag or tap terms to expand, fill in the 4 terms first, then combine like terms",
+                demo1_ex1: "Please award the apple to two people",
+                demo1_ex2: "Please award the watermelon to two people",
+                demo1_ex3: "Please award 5 into the bracket",
+                demo1_ex4: "Expand the mathematical expression",
+                demo2: "Expand the brackets sequentially",
+                demo2_1: "Expand and calculate",
+                play1: "Expand and simplify",
+                play2: "Expand step by step, then combine like terms",
                 next: "Next",
                 check: "Check",
-                correctTitle: "Correct! 🎉",
-                correctMsg: "You successfully applied the Distributive Property!",
-                stage4CorrectMsg: "Great! 4 terms simplified. Now combine like terms:",
-                wrongTitle: "Try Again! 🤔",
-                btnEx1: "Example 1", btnEx2: "Example 2", btnEx3: "Example 3", btnEx4: "Example 4", btnDemo2: "Demo 2", btnDemo21: "Demo 2.1", btnPlay: "Play Mode 1", btnPlay2: "Play Mode 2",
-                signPlaceholder: "+/-",
-                term1Placeholder: "Term1",
-                term2Placeholder: "Term2",
-                term3Placeholder: "Term3",
-                term4Placeholder: "Term4",
-                kbNumLabel: "Number Keypad",
-                kbAlphaLabel: "Symbol Keypad (3x3)",
-                btnSwitchAlpha: "Switch to Symbols (x y a b c d ² ³ ⁴)",
-                btnSwitchNum: "Switch to Numbers (123)"
+                term1: "Term 1",
+                term2: "Term 2",
+                real_ans: "Correct Answer: "
+            },
+            zh: {
+                demo1_ex1: "請獎勵蘋果給兩人",
+                demo1_ex2: "請獎勵西瓜給兩人",
+                demo1_ex3: "請獎勵 5 給括號的數字",
+                demo1_ex4: "展開以下數式",
+                demo2: "順序分配括號內的項目",
+                demo2_1: "展開並計算",
+                play1: "展開並化簡",
+                play2: "先各自化簡，再合併同類項",
+                next: "下一題",
+                check: "檢查",
+                term1: "項 1",
+                term2: "項 2",
+                real_ans: "正確答案: "
             }
         };
 
-        const modeOrder = ['ex1', 'ex2', 'ex3', 'ex4', 'play', 'demo2', 'demo21', 'play2'];
-
-        let currentLang = 'zh';
-        let currentMode = 'ex1';
-        let activeInputEl = null;
-
-        let gameState = {
+        const state = {
+            lang: 'en',
+            mode: 'demo1',
+            step: 1,
+            
+            // Current problem data
+            multiplier: '',
+            term1: '',
+            term2: '',
+            operator: '+',
+            mult2: '', // For (a+b)(c+d)
+            
+            // Interaction State
+            dragMode: 'single', // single, double (for demo2)
             targetsHit: 0,
             requiredHits: 2,
-            itemType: '🍎',
-            demo2Hits: { apple: [false, false], watermelon: [false, false] },
-            demo2Stage2Hits: { apple: [false, false], watermelon: [false, false] },
-            demo21Hits: { num3: [false, false], num5: [false, false] },
-            demo21Stage2Hits: { num3: [false, false], num5: [false, false] },
-            play2Stage1: { xHits: [false, false], numHits: [false, false] },
-            play2Stage2: { xHits: [false, false], numHits: [false, false] },
-            play1Hits: [false, false],
-            playData: null,
-            play2Data: null
+            isCompleted: false,
+            
+            // Input Mode State
+            activeInput: 't1',
+            inputs: { t1: '', op: '+', t2: '' },
+            pm2_inputs: { t1: '', op1: '+', t2: '', op2: '+', t3: '' },
+            correctAnswer: null, // string or object
+            
+            dragItemType: 1 // 1 for first item in demo2, 2 for second
         };
 
-        function getSmileySVG(mouthOpen = true) {
-            if (mouthOpen) {
-                return `
-                    <svg class="w-12 h-12 md:w-14 md:h-14 text-amber-500 inline-block pointer-events-none drop-shadow-md" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" fill="#fde047" stroke="#d97706" stroke-width="4"/>
-                        <circle cx="35" cy="35" r="6" fill="#1e293b"/>
-                        <path d="M 50 50 L 90 30 A 40 40 0 0 1 90 70 Z" fill="#1e293b"/>
-                    </svg>
-                `;
-            } else {
-                return `
-                    <svg class="w-12 h-12 md:w-14 md:h-14 text-amber-500 inline-block pointer-events-none drop-shadow-md" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" fill="#fde047" stroke="#d97706" stroke-width="4"/>
-                        <circle cx="35" cy="35" r="6" fill="#1e293b"/>
-                        <circle cx="65" cy="35" r="6" fill="#1e293b"/>
-                        <path d="M 25 60 Q 50 85 75 60" fill="none" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
-                    </svg>
-                `;
-            }
-        }
+        const els = {
+            instr: document.getElementById('instruction-text'),
+            row1: document.getElementById('row-1'),
+            row2: document.getElementById('row-2'),
+            rowInput: document.getElementById('row-input'),
+            rowInputPM2: document.getElementById('row-input-pm2'),
+            nextBtn: document.getElementById('next-btn'),
+            ghost: document.getElementById('drag-ghost'),
+            kb: document.getElementById('keyboard'),
+            bubble: document.getElementById('feedback-bubble'),
+            msg: document.getElementById('feedback-msg'),
+            icon: document.getElementById('feedback-icon')
+        };
 
-        function showToast(isCorrect, customMsg = '') {
-            const toast = document.getElementById('toast-message');
-            const title = document.getElementById('toast-title');
-            const body = document.getElementById('toast-body');
-            const t = translations[currentLang];
+        const HTML_SMILEY = `
+            <div class="pacman-wrapper">
+                <svg class="pacman-open" viewBox="0 0 100 100">
+                    <path d="M 18 26 A 40 40 0 1 1 18 74 L 45 50 Z" stroke="#dc2626" stroke-width="6" fill="none" stroke-linejoin="round"/>
+                    <circle cx="65" cy="35" r="7" fill="#dc2626" />
+                </svg>
+                <svg class="pacman-closed" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="#dc2626" stroke-width="6" fill="none"/>
+                    <line x1="10" y1="50" x2="45" y2="50" stroke="#dc2626" stroke-width="6" stroke-linecap="round"/>
+                    <circle cx="65" cy="35" r="7" fill="#dc2626" />
+                </svg>
+            </div>
+        `;
+        const HTML_DOT = `<span class="mx-1 text-2xl font-bold">·</span>`;
 
-            if (isCorrect) {
-                toast.className = 'toast-popup p-4 rounded-2xl shadow-2xl border bg-emerald-50/95 border-emerald-300 text-emerald-900';
-                title.textContent = t.correctTitle;
-                body.innerHTML = customMsg || t.correctMsg;
-            } else {
-                toast.className = 'toast-popup p-4 rounded-2xl shadow-2xl border bg-rose-50/95 border-rose-300 text-rose-900';
-                title.textContent = t.wrongTitle;
-                body.innerHTML = customMsg || 'Please try again!';
-            }
+        function init() {
+            document.getElementById('lang-toggle').addEventListener('click', () => {
+                state.lang = state.lang === 'en' ? 'zh' : 'en';
+                document.getElementById('lang-toggle').innerText = state.lang === 'en' ? '中文' : 'English';
+                updateUI();
+            });
 
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 4200);
-        }
-
-        function showKeyboardFor(inputEl) {
-            activeInputEl = inputEl;
-            const kb = document.getElementById('virtual-keyboard');
-            kb.classList.remove('hidden');
-            setTimeout(() => {
-                inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        }
-
-        function hideKeyboard() {
-            const kb = document.getElementById('virtual-keyboard');
-            if (kb) kb.classList.add('hidden');
-            activeInputEl = null;
-        }
-
-        function setupVirtualKeyboard() {
-            const kbPageToggle = document.getElementById('kb-page-toggle');
-            const kbNumPage = document.getElementById('kb-num-page');
-            const kbAlphaPage = document.getElementById('kb-alpha-page');
-            const kbLabel = document.getElementById('kb-label');
-
-            document.querySelectorAll('.key-btn').forEach(btn => {
+            document.querySelectorAll('.mode-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (!activeInputEl) return;
+                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active', 'ring-4', 'ring-white'));
+                    e.target.classList.add('active', 'ring-4', 'ring-white');
                     
-                    const key = btn.dataset.key;
-                    if (key === 'BACKSPACE') {
-                        activeInputEl.value = activeInputEl.value.slice(0, -1);
-                    } else if (key === 'CLEAR') {
-                        activeInputEl.value = '';
-                    } else if (key === 'DONE') {
-                        hideKeyboard();
-                    } else if (key === 'SPACE') {
-                        activeInputEl.value += ' ';
-                    } else if (['²', '³', '⁴', 'x²', 'x³', 'x⁴'].includes(key)) {
-                        const expChar = key.replace('x', '');
-                        const val = activeInputEl.value;
-                        if (val.length > 0) {
-                            activeInputEl.value += expChar;
-                        } else {
-                            activeInputEl.value = 'x' + expChar;
-                        }
-                    } else {
-                        if (activeInputEl.classList.contains('math-sign-input')) {
-                            if (key === '+' || key === '-') {
-                                activeInputEl.value = key;
-                            }
-                        } else {
-                            activeInputEl.value += key;
-                        }
+                    state.mode = e.target.dataset.mode;
+                    state.step = parseInt(e.target.dataset.step) || 1;
+                    
+                    // Special case for demo2 sequence
+                    if(state.mode === 'demo2' && e.target.innerText === 'Demo 2') {
+                        // Allow stepping inside demo2 logic later if needed
+                        state.step = 1; 
                     }
+                    loadScene();
                 });
             });
 
-            if (kbPageToggle) {
-                kbPageToggle.addEventListener('click', () => {
-                    const isNum = !kbNumPage.classList.contains('hidden');
-                    const t = translations[currentLang];
-                    if (isNum) {
-                        kbNumPage.classList.add('hidden');
-                        kbAlphaPage.classList.remove('hidden');
-                        kbPageToggle.textContent = t.btnSwitchNum;
-                        kbLabel.textContent = t.kbAlphaLabel;
-                    } else {
-                        kbAlphaPage.classList.add('hidden');
-                        kbNumPage.classList.remove('hidden');
-                        kbPageToggle.textContent = t.btnSwitchAlpha;
-                        kbLabel.textContent = t.kbNumLabel;
-                    }
-                });
-            }
-        }
-
-        function clearHistory() {
-            const ws = document.getElementById('game-workspace');
-            ws.innerHTML = '';
-            document.getElementById('check-btn').classList.add('hidden');
-            document.getElementById('next-btn').classList.add('hidden');
-        }
-
-        function createStepRow(id) {
-            const ws = document.getElementById('game-workspace');
-            const row = document.createElement('div');
-            row.id = id;
-            row.className = 'w-full flex flex-col items-center justify-center p-4 my-1 bg-white rounded-2xl shadow-md border border-indigo-100 transition-all duration-500';
-            ws.appendChild(row);
-            return row;
-        }
-
-        let selectedSourceEl = null;
-
-        function clearSourceSelection() {
-            if (selectedSourceEl) {
-                selectedSourceEl.classList.remove('draggable-selected');
-                selectedSourceEl = null;
-            }
-            document.querySelectorAll('.drop-target').forEach(t => {
-                t.classList.remove('target-active');
-            });
-        }
-
-        function makeDraggable(sourceEl, onDropCallback, getValidTargets) {
-            let clone = null;
-
-            function highlightTargets() {
-                const targets = getValidTargets();
-                targets.forEach(t => t.classList.add('target-active'));
-            }
-
-            sourceEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (selectedSourceEl === sourceEl) {
-                    clearSourceSelection();
-                } else {
-                    clearSourceSelection();
-                    selectedSourceEl = sourceEl;
-                    sourceEl.classList.add('draggable-selected');
-                    highlightTargets();
-                }
-            });
-
-            const onMove = (clientX, clientY) => {
-                if (!clone) return;
-                clone.style.left = clientX + 'px';
-                clone.style.top = clientY + 'px';
-
-                const targets = getValidTargets();
-                targets.forEach(t => {
-                    const rect = t.getBoundingClientRect();
-                    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-                        t.classList.add('target-hover');
-                    } else {
-                        t.classList.remove('target-hover');
-                    }
-                });
-            };
-
-            const onEnd = (clientX, clientY) => {
-                if (clone) {
-                    clone.remove();
-                    clone = null;
-                }
-                sourceEl.style.opacity = '1';
-
-                const targets = getValidTargets();
-                let dropped = false;
-                targets.forEach(t => {
-                    t.classList.remove('target-hover', 'target-active');
-                    const rect = t.getBoundingClientRect();
-                    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-                        onDropCallback(t);
-                        dropped = true;
-                    }
-                });
-                clearSourceSelection();
-            };
-
-            sourceEl.addEventListener('touchstart', (e) => {
-                const touch = e.touches[0];
-                sourceEl.style.opacity = '0.35';
-                clone = sourceEl.cloneNode(true);
-                clone.classList.add('drag-clone');
-                document.body.appendChild(clone);
-                onMove(touch.clientX, touch.clientY);
-                highlightTargets();
-            }, { passive: true });
-
-            sourceEl.addEventListener('touchmove', (e) => {
-                if (e.touches.length > 0) {
-                    onMove(e.touches[0].clientX, e.touches[0].clientY);
-                }
-            }, { passive: true });
-
-            sourceEl.addEventListener('touchend', (e) => {
-                const touch = e.changedTouches[0];
-                onEnd(touch.clientX, touch.clientY);
-            });
-
-            sourceEl.addEventListener('mousedown', (e) => {
-                sourceEl.style.opacity = '0.35';
-                clone = sourceEl.cloneNode(true);
-                clone.classList.add('drag-clone');
-                document.body.appendChild(clone);
-                onMove(e.clientX, e.clientY);
-                highlightTargets();
-
-                const mouseMoveHandler = (me) => onMove(me.clientX, me.clientY);
-                const mouseUpHandler = (me) => {
-                    window.removeEventListener('mousemove', mouseMoveHandler);
-                    window.removeEventListener('mouseup', mouseUpHandler);
-                    onEnd(me.clientX, me.clientY);
-                };
-
-                window.addEventListener('mousemove', mouseMoveHandler);
-                window.addEventListener('mouseup', mouseUpHandler);
-            });
-        }
-
-        document.addEventListener('click', (e) => {
-            if (selectedSourceEl) {
-                const targets = document.querySelectorAll('.drop-target.target-active');
-                targets.forEach(t => {
-                    if (t.contains(e.target) || t === e.target) {
-                        const clickHandler = t._onTargetClick;
-                        if (clickHandler) clickHandler();
-                    }
-                });
-                clearSourceSelection();
-            }
-        });
-
-        function awardItemToTarget(targetEl, itemSymbol) {
-            let container = targetEl.querySelector('.awarded-container');
-            if (!container) {
-                container = document.createElement('div');
-                container.className = 'awarded-container';
-                targetEl.appendChild(container);
-            }
-            const badge = document.createElement('div');
-            badge.className = 'item-awarded';
-            badge.textContent = itemSymbol;
-            container.appendChild(badge);
-        }
-
-        function createStandardLevel(itemSymbol) {
-            clearHistory();
-            gameState.targetsHit = 0;
-            gameState.requiredHits = 2;
-            gameState.itemType = itemSymbol;
-
-            const step1 = createStepRow('step-1');
-            step1.innerHTML = `
-                <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-bold flex-wrap">
-                    <span id="source-item" class="draggable text-3xl md:text-5xl hover:scale-110 p-2.5 border-2 border-dashed border-amber-400 rounded-2xl bg-amber-50/80 shadow-sm">
-                        ${itemSymbol}
-                    </span>
-                    <span class="bracket b-l">(</span>
-                    <span class="drop-target face-target p-1 cursor-pointer" data-idx="0">
-                        <span class="eat-face-target">${getSmileySVG(true)}</span>
-                    </span>
-                    <span class="text-indigo-600 font-bold mx-2">+</span>
-                    <span class="drop-target face-target p-1 cursor-pointer" data-idx="1">
-                        <span class="eat-face-target">${getSmileySVG(true)}</span>
-                    </span>
-                    <span class="bracket b-r">)</span>
-                </div>
-            `;
-
-            const source = document.getElementById('source-item');
-            const targets = Array.from(step1.querySelectorAll('.face-target'));
-
-            targets.forEach(target => {
-                target._onTargetClick = () => {
-                    const idx = parseInt(target.dataset.idx);
-                    if (target.dataset.hit === 'true') return;
-                    target.dataset.hit = 'true';
-                    awardItemToTarget(target, itemSymbol);
-                    gameState.targetsHit++;
-                    checkStandardLevelProgress();
-                };
-            });
-
-            makeDraggable(source, (target) => {
-                target._onTargetClick();
-            }, () => targets.filter(t => t.dataset.hit !== 'true'));
-        }
-
-        function checkStandardLevelProgress() {
-            if (gameState.targetsHit >= gameState.requiredHits) {
+            els.nextBtn.addEventListener('click', () => {
+                // Chomp animation
+                document.querySelectorAll('.pacman-wrapper').forEach(p => p.classList.add('chomp'));
                 setTimeout(() => {
-                    const step1 = document.getElementById('step-1');
-                    step1.querySelector('.b-l').classList.add('bracket-left-collapse');
-                    step1.querySelector('.b-r').classList.add('bracket-right-collapse');
+                    if(state.mode === 'demo1') {
+                        state.step = state.step < 4 ? state.step + 1 : 1;
+                        document.querySelector(`.mode-btn[data-mode="demo1"][data-step="${state.step}"]`)?.click();
+                    } else if (state.mode === 'play1') {
+                        loadScene(); // Reload random
+                    } else if (state.mode === 'play2') {
+                        loadScene();
+                    } else if (state.mode === 'demo2') {
+                        if(state.step === 1) state.step = 2; // Move to demo 2.1
+                        else state.step = 1;
+                        loadScene();
+                    }
+                }, 600);
+            });
 
-                    setTimeout(() => {
-                        const step2 = createStepRow('step-2');
-                        step2.innerHTML = `
-                            <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-bold flex-wrap">
-                                <span class="text-gray-400 font-bold mr-2">=</span>
-                                <span class="text-2xl md:text-4xl">${gameState.itemType}</span>
-                                <span class="eat-face-target">${getSmileySVG(true)}</span>
-                                <span class="text-indigo-600 font-bold mx-2">+</span>
-                                <span class="text-2xl md:text-4xl">${gameState.itemType}</span>
-                                <span class="eat-face-target">${getSmileySVG(true)}</span>
-                            </div>
-                        `;
+            document.getElementById('check-btn').addEventListener('click', checkPlay1Answer);
+            document.getElementById('check-btn-pm2').addEventListener('click', checkPlay2Answer);
 
-                        const nextBtn = document.getElementById('next-btn');
-                        nextBtn.classList.remove('hidden');
-                        nextBtn.textContent = translations[currentLang].next;
-                        nextBtn.onclick = () => {
-                            eatAnimationStandard(() => {
-                                autoAdvanceNextMode();
-                            });
-                        };
-                    }, 600);
-                }, 300);
+            // Default click
+            document.querySelector('.mode-btn[data-mode="demo1"][data-step="1"]').click();
+        }
+
+        function updateUI() {
+            const d = dict[state.lang];
+            
+            // Instruction
+            if(state.mode === 'demo1') {
+                els.instr.innerText = d[`demo1_ex${state.step}`];
+            } else if (state.mode === 'demo2') {
+                els.instr.innerText = state.step === 1 ? d.demo2 : d.demo2_1;
+            } else if (state.mode === 'play1') {
+                els.instr.innerText = d.play1;
+                // Update placeholder texts
+                if(!state.inputs.t1) document.getElementById('input-t1').innerHTML = `<span class="text-gray-300 text-lg">${state.lang==='en'?'Term 1':'項 1'}</span>`;
+                if(!state.inputs.t2) document.getElementById('input-t2').innerHTML = `<span class="text-gray-300 text-lg">${state.lang==='en'?'Term 2':'項 2'}</span>`;
+            } else if (state.mode === 'play2') {
+                els.instr.innerText = d.play2;
+            }
+
+            els.nextBtn.innerText = d.next;
+            document.getElementById('check-btn').innerText = d.check;
+            document.getElementById('check-btn-pm2').innerText = d.check;
+        }
+
+        // --- STREAMING_CHUNK:Scene generation and rendering... ---
+        function loadScene() {
+            state.targetsHit = 0;
+            state.isCompleted = false;
+            state.dragItemType = 1;
+            els.nextBtn.classList.add('hidden');
+            els.row2.classList.add('hidden');
+            els.row2.style.opacity = '0';
+            els.rowInput.classList.add('hidden');
+            els.rowInputPM2.classList.add('hidden');
+            hideKeyboard();
+            hideFeedback();
+
+            if (state.mode === 'demo1') {
+                state.dragMode = 'single';
+                if (state.step === 1) setupEq('🍎', 'SMILEY', 'SMILEY', '+');
+                if (state.step === 2) setupEq('🍉', 'SMILEY', 'SMILEY', '+');
+                if (state.step === 3) setupEq('<span class="text-red-500">5</span>', 'SMILEY', 'SMILEY', '+');
+                if (state.step === 4) setupEq('<span class="text-red-500">5</span>', 'x', '12', '+');
+            } else if (state.mode === 'demo2') {
+                 state.dragMode = 'double';
+                 if (state.step === 1) {
+                     // (🍎+🍉)(SMILEY+SMILEY)
+                     state.multiplier = '🍎';
+                     state.mult2 = '🍉';
+                     state.term1 = 'SMILEY';
+                     state.term2 = 'SMILEY';
+                 } else {
+                     // (3+5)(🍎+🍉) -> Demo 2.1
+                     state.multiplier = '<span class="text-red-500">3</span>';
+                     state.mult2 = '<span class="text-blue-500">5</span>';
+                     state.term1 = '🍎';
+                     state.term2 = '🍉';
+                     state.operator = '+';
+                 }
+                 state.requiredHits = 4;
+            } else if (state.mode === 'play1') {
+                state.dragMode = 'single';
+                generatePlay1();
+            } else if (state.mode === 'play2') {
+                state.dragMode = 'double';
+                generatePlay2();
+            }
+
+            renderRow1();
+            updateUI();
+            setupDrag();
+        }
+
+        function setupEq(m, t1, t2, op) {
+            state.multiplier = m;
+            state.term1 = t1;
+            state.term2 = t2;
+            state.operator = op;
+            state.requiredHits = 2;
+        }
+
+        function generatePlay1() {
+            const a = Math.floor(Math.random() * 8) + 2; 
+            const b = Math.floor(Math.random() * 8) + 2; 
+            const c = Math.floor(Math.random() * 8) + 2;
+            const op = Math.random() > 0.5 ? '+' : '-';
+            const vars = ['x', 'y', 'a', 'b'];
+            const v = vars[Math.floor(Math.random() * vars.length)];
+
+            setupEq(`<span class="text-red-500">${a}</span>`, `${b}${v}`, `${c}`, op);
+            
+            state.correctAnswer = { t1: `${a*b}${v}`, op: op, t2: `${a*c}` };
+            state.inputs = { t1: '', op: '+', t2: '' };
+            updateInputDisplay();
+        }
+
+        function generatePlay2() {
+            // (x+a)(x+b)
+            const v = ['x', 'y'][Math.floor(Math.random() * 2)];
+            const a = Math.floor(Math.random() * 5) + 1;
+            const b = Math.floor(Math.random() * 5) + 1;
+            
+            state.multiplier = `<span class="text-red-500">${v}</span>`;
+            state.mult2 = `<span class="text-blue-500">${a}</span>`;
+            state.term1 = v;
+            state.term2 = b;
+            state.operator = '+';
+            state.requiredHits = 4;
+
+            // correct final: x^2 + (a+b)x + ab
+            state.correctAnswer = {
+                t1: `${v}²`,
+                op1: '+',
+                t2: `${a+b}${v}`,
+                op2: '+',
+                t3: `${a*b}`
+            };
+            state.pm2_inputs = { t1: '', op1: '+', t2: '', op2: '+', t3: '' };
+            updatePM2InputDisplay();
+        }
+
+        function getRenderHTML(val) {
+            if (val === 'SMILEY') return HTML_SMILEY;
+            return val; // Returns raw HTML for emoji or numbers
+        }
+
+        function renderRow1() {
+            let html = '';
+            
+            if (state.dragMode === 'single') {
+                html = `
+                    <div id="drag-source-1" class="drag-source text-5xl hover:scale-110 active:scale-95" data-val="${state.multiplier.replace(/"/g, '&quot;')}">${state.multiplier}</div>
+                    <div class="bracket" id="b-left">(</div>
+                    <div class="target-area" id="target-1">
+                        <div class="item-slot" id="slot-1"></div>
+                        <div>${getRenderHTML(state.term1)}</div>
+                    </div>
+                    <div class="text-4xl px-2">${state.operator}</div>
+                    <div class="target-area" id="target-2">
+                        <div class="item-slot" id="slot-2"></div>
+                        <div>${getRenderHTML(state.term2)}</div>
+                    </div>
+                    <div class="bracket" id="b-right">)</div>
+                `;
+            } else if (state.dragMode === 'double') {
+                // Demo 2 or Play 2 format: (A + B)(C + D)
+                html = `
+                    <div class="bracket" id="b1-left">(</div>
+                    <div id="drag-source-1" class="drag-source text-5xl hover:scale-110 active:scale-95 z-20" data-val="${state.multiplier.replace(/"/g, '&quot;')}">${state.multiplier}</div>
+                    <div class="text-4xl px-2">+</div>
+                    <div id="drag-source-2" class="drag-source text-5xl hover:scale-110 active:scale-95 z-20 opacity-50 pointer-events-none" data-val="${state.mult2.replace(/"/g, '&quot;')}">${state.mult2}</div>
+                    <div class="bracket" id="b1-right">)</div>
+                    
+                    <div class="bracket ml-2" id="b-left">(</div>
+                    <div class="target-area" id="target-1">
+                        <div class="item-slot" id="slot-1"></div>
+                        <div>${getRenderHTML(state.term1)}</div>
+                    </div>
+                    <div class="text-4xl px-2">${state.operator}</div>
+                    <div class="target-area" id="target-2">
+                        <div class="item-slot" id="slot-2"></div>
+                        <div>${getRenderHTML(state.term2)}</div>
+                    </div>
+                    <div class="bracket" id="b-right">)</div>
+                `;
+            }
+
+            els.row1.innerHTML = html;
+        }
+
+        // --- STREAMING_CHUNK:Interaction Logic (Drag & Drop)... ---
+        function setupDrag() {
+            let activeSource = null;
+            let isDragging = false;
+            let currentTarget = null;
+
+            function down(e) {
+                const el = e.target.closest('.drag-source');
+                if(!el) return;
+                
+                // Only allow dragging current active type in double mode
+                if(state.dragMode === 'double') {
+                    if(el.id === 'drag-source-1' && state.dragItemType !== 1) return;
+                    if(el.id === 'drag-source-2' && state.dragItemType !== 2) return;
+                }
+
+                activeSource = el;
+                isDragging = true;
+                els.ghost.innerHTML = el.dataset.val;
+                els.ghost.style.display = 'block';
+                move(e);
+                e.preventDefault();
+            }
+
+            function move(e) {
+                if(!isDragging) return;
+                const touch = e.touches ? e.touches[0] : e;
+                els.ghost.style.left = touch.clientX + 'px';
+                els.ghost.style.top = touch.clientY + 'px';
+
+                // Check collisions
+                currentTarget = null;
+                [1, 2].forEach(i => {
+                    const t = document.getElementById(`target-${i}`);
+                    if(!t) return;
+                    const rect = t.getBoundingClientRect();
+                    // Expanded hit area
+                    if(touch.clientX > rect.left - 20 && touch.clientX < rect.right + 20 &&
+                       touch.clientY > rect.top - 50 && touch.clientY < rect.bottom + 50) {
+                        t.classList.add('highlight-target');
+                        currentTarget = i;
+                    } else {
+                        t.classList.remove('highlight-target');
+                    }
+                });
+            }
+
+            function up(e) {
+                if(!isDragging) return;
+                isDragging = false;
+                els.ghost.style.display = 'none';
+                
+                document.querySelectorAll('.target-area').forEach(t => t.classList.remove('highlight-target'));
+
+                if(currentTarget) {
+                    dropOnTarget(currentTarget, activeSource.dataset.val);
+                }
+                activeSource = null;
+            }
+
+            // Click support
+            function clickHandle(e) {
+                const el = e.target.closest('.drag-source');
+                if(!el) return;
+                if(state.dragMode === 'double') {
+                    if(el.id === 'drag-source-1' && state.dragItemType !== 1) return;
+                    if(el.id === 'drag-source-2' && state.dragItemType !== 2) return;
+                }
+                // Find empty slot
+                if(!state.targetsHit || state.targetsHit % 2 === 0) dropOnTarget(1, el.dataset.val);
+                else dropOnTarget(2, el.dataset.val);
+            }
+
+            const r1 = els.row1;
+            // Clean old listeners
+            const newR1 = r1.cloneNode(true);
+            r1.parentNode.replaceChild(newR1, r1);
+            els.row1 = newR1;
+
+            els.row1.addEventListener('pointerdown', down);
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+            // Click to drop sequentially
+            els.row1.addEventListener('click', (e) => {
+                if(e.target.closest('.drag-source')) clickHandle(e);
+            });
+        }
+
+        function dropOnTarget(targetNum, htmlVal) {
+            // Prevent double drop in same phase
+            const phaseHits = state.targetsHit % 2;
+            if(targetNum === 1 && phaseHits !== 0) return;
+            if(targetNum === 2 && phaseHits !== 1) return;
+
+            state.targetsHit++;
+            
+            const slot = document.getElementById(`slot-${targetNum}`);
+            const el = document.createElement('div');
+            // If it's a number and target is not smiley, add dot
+            let displayVal = htmlVal;
+            if (htmlVal.includes('span') && state.term1 !== 'SMILEY') {
+                displayVal = `${htmlVal}${HTML_DOT}`;
+            }
+
+            el.innerHTML = displayVal;
+            el.className = 'dropped-item';
+            slot.appendChild(el);
+
+            if(state.targetsHit === 2 && state.dragMode === 'double') {
+                // Phase 1 complete. Enable phase 2
+                state.dragItemType = 2;
+                document.getElementById('drag-source-1').classList.add('opacity-50', 'pointer-events-none');
+                document.getElementById('drag-source-2').classList.remove('opacity-50', 'pointer-events-none');
+                // Clear slots visually by moving existing dropped items slightly up or grouping them
+                // Actually, just let them stack since we set flex-direction: column-reverse
+            }
+
+            if(state.targetsHit === state.requiredHits) {
+                triggerCompletion();
             }
         }
 
-        function eatAnimationStandard(onComplete) {
-            const faces = document.querySelectorAll('.eat-face-target');
-            faces.forEach(f => {
-                f.classList.add('eating-anim');
-                f.innerHTML = getSmileySVG(false);
-            });
+        // --- STREAMING_CHUNK:Animations and Next Stages... ---
+        function triggerCompletion() {
+            state.isCompleted = true;
+            
+            // Bracket Fall Animation
+            document.querySelectorAll('.bracket').forEach(b => b.classList.add('hide'));
+
             setTimeout(() => {
-                onComplete();
+                showResultRow();
             }, 800);
         }
 
-        function autoAdvanceNextMode() {
-            const idx = modeOrder.indexOf(currentMode);
-            if (idx !== -1 && idx < modeOrder.length - 1) {
-                currentMode = modeOrder[idx + 1];
-                updateModeButtonsUI();
-                loadLevel();
-            }
-        }
+        function showResultRow() {
+            els.row2.classList.remove('hidden');
+            // Force reflow
+            void els.row2.offsetWidth;
+            els.row2.style.opacity = '1';
 
-        function createMathLevel(numStr, varStr, constStr) {
-            clearHistory();
-            gameState.targetsHit = 0;
-            gameState.requiredHits = 2;
-
-            const step1 = createStepRow('step-1');
-            step1.innerHTML = `
-                <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-bold flex-wrap">
-                    <span id="source-item" class="draggable text-2xl md:text-4xl font-extrabold text-rose-600 p-2.5 border-2 border-dashed border-rose-300 rounded-2xl bg-rose-50 shadow-sm">
-                        ${numStr}
-                    </span>
-                    <span class="bracket b-l">(</span>
-                    <span class="drop-target math-target px-3 py-1 font-bold text-indigo-700" data-idx="0">${varStr}</span>
-                    <span class="text-indigo-600 font-bold mx-2">+</span>
-                    <span class="drop-target math-target px-3 py-1 font-bold text-indigo-700" data-idx="1">${constStr}</span>
-                    <span class="bracket b-r">)</span>
-                </div>
-            `;
-
-            const source = document.getElementById('source-item');
-            const targets = Array.from(step1.querySelectorAll('.math-target'));
-
-            targets.forEach(target => {
-                target._onTargetClick = () => {
-                    if (target.dataset.hit === 'true') return;
-                    target.dataset.hit = 'true';
-                    awardItemToTarget(target, numStr);
-                    gameState.targetsHit++;
-                    if (gameState.targetsHit >= gameState.requiredHits) {
-                        setTimeout(() => {
-                            step1.querySelector('.b-l').classList.add('bracket-left-collapse');
-                            step1.querySelector('.b-r').classList.add('bracket-right-collapse');
-
-                            setTimeout(() => {
-                                showMathLevelStep2(numStr, varStr, constStr);
-                            }, 600);
-                        }, 300);
-                    }
-                };
-            });
-
-            makeDraggable(source, (target) => {
-                target._onTargetClick();
-            }, () => targets.filter(t => t.dataset.hit !== 'true'));
-        }
-
-        function showMathLevelStep2(numStr, varStr, constStr) {
-            const step2 = createStepRow('step-2');
-            step2.innerHTML = `
-                <div class="flex items-center justify-center gap-1 sm:gap-2 text-xl md:text-3xl font-bold flex-wrap">
-                    <span class="text-gray-400 font-bold mr-1">=</span>
-                    <span class="text-rose-600 font-extrabold">${numStr}</span>
-                    <span class="text-gray-400">·</span>
-                    <span class="text-indigo-700">${varStr}</span>
-                    <span class="text-indigo-600 font-bold mx-2">+</span>
-                    <span class="text-rose-600 font-extrabold">${numStr}</span>
-                    <span class="text-gray-400">·</span>
-                    <span class="text-indigo-700">${constStr}</span>
-                </div>
-            `;
-
-            const step3 = createStepRow('step-3');
-            step3.innerHTML = `
-                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-3xl max-w-full overflow-x-auto">
-                    <span class="text-gray-400 font-bold mr-1">=</span>
-                    <input type="text" id="ex4-t1" class="input-box text-indigo-700 font-bold" placeholder="5x" readonly>
-                    <input type="text" id="ex4-sign" class="input-box math-sign-input text-emerald-600 font-bold w-12" placeholder="+/-" readonly>
-                    <input type="text" id="ex4-t2" class="input-box text-indigo-700 font-bold" placeholder="60" readonly>
-                </div>
-            `;
-
-            const t1 = document.getElementById('ex4-t1');
-            const sign = document.getElementById('ex4-sign');
-            const t2 = document.getElementById('ex4-t2');
-
-            [t1, sign, t2].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
-
-            const checkBtn = document.getElementById('check-btn');
-            checkBtn.classList.remove('hidden');
-            checkBtn.onclick = () => {
-                const v1 = t1.value.trim();
-                const vs = sign.value.trim();
-                const v2 = t2.value.trim();
-
-                if ((v1 === '5x' || v1 === '5·x') && vs === '+' && v2 === '60') {
-                    showToast(true);
-                    checkBtn.classList.add('hidden');
-                    const nextBtn = document.getElementById('next-btn');
-                    nextBtn.classList.remove('hidden');
-                    nextBtn.onclick = () => autoAdvanceNextMode();
+            if (state.mode === 'demo1') {
+                if (state.step === 4) {
+                    els.row2.innerHTML = `= <span class="text-blue-600">5x + 60</span>`;
                 } else {
-                    showToast(false, 'Expected answer: <b>5x + 60</b>');
+                    let m = state.multiplier;
+                    if(state.step===3) m = m + HTML_DOT;
+                    els.row2.innerHTML = `= <div class="flex items-center">${m}${getRenderHTML(state.term1)}</div> 
+                                          <div class="px-2">${state.operator}</div> 
+                                          <div class="flex items-center">${m}${getRenderHTML(state.term2)}</div>`;
                 }
-            };
-        }
-
-        function createPlayMode1Level() {
-            clearHistory();
-            const a = Math.floor(Math.random() * 6) + 2;
-            const b = Math.floor(Math.random() * 4) + 1;
-            const c = Math.floor(Math.random() * 8) + 2;
-            const isPlus = Math.random() > 0.3;
-            const signChar = isPlus ? '+' : '-';
-            const varChar = 'x';
-
-            const term1Str = b === 1 ? varChar : `${b}${varChar}`;
-            const exp1Val = b === 1 ? `${a}${varChar}` : `${a * b}${varChar}`;
-            const exp2Val = `${a * c}`;
-
-            gameState.playData = { a, b, c, isPlus, term1Str, exp1Val, exp2Val, signChar };
-            gameState.play1Hits = [false, false];
-
-            const step1 = createStepRow('step-1');
-            step1.innerHTML = `
-                <div class="flex items-center justify-center gap-2 text-2xl md:text-3xl font-bold flex-wrap">
-                    <span id="play1-multiplier" class="draggable text-2xl md:text-4xl font-extrabold text-rose-600 p-2.5 border-2 border-dashed border-rose-300 rounded-2xl bg-rose-50 shadow-sm">
-                        ${a}
-                    </span>
-                    <span class="bracket b-l">(</span>
-                    <span class="drop-target play1-target px-3 py-1 font-bold text-indigo-700" data-idx="0">${term1Str}</span>
-                    <span class="text-indigo-600 font-bold mx-2">${signChar}</span>
-                    <span class="drop-target play1-target px-3 py-1 font-bold text-indigo-700" data-idx="1">${c}</span>
-                    <span class="bracket b-r">)</span>
-                </div>
-            `;
-
-            const mult = document.getElementById('play1-multiplier');
-            const targets = Array.from(step1.querySelectorAll('.play1-target'));
-
-            targets.forEach(target => {
-                target._onTargetClick = () => {
-                    const idx = parseInt(target.dataset.idx);
-                    if (gameState.play1Hits[idx]) return;
-                    gameState.play1Hits[idx] = true;
-                    awardItemToTarget(target, `${a}`);
-
-                    if (gameState.play1Hits[0] && gameState.play1Hits[1]) {
-                        setTimeout(() => {
-                            step1.querySelector('.b-l').classList.add('bracket-left-collapse');
-                            step1.querySelector('.b-r').classList.add('bracket-right-collapse');
-                            setTimeout(() => showPlay1InputStep(), 600);
-                        }, 300);
-                    }
-                };
-            });
-
-            makeDraggable(mult, (target) => {
-                target._onTargetClick();
-            }, () => targets.filter((_, idx) => !gameState.play1Hits[idx]));
-        }
-
-        function showPlay1InputStep() {
-            const pd = gameState.playData;
-            const t = translations[currentLang];
-
-            const step2 = createStepRow('step-2');
-            step2.innerHTML = `
-                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-3xl max-w-full overflow-x-auto">
-                    <span class="text-gray-400 font-bold mr-1">=</span>
-                    <input type="text" id="p1-t1" class="input-box text-indigo-700 font-bold" placeholder="${t.term1Placeholder}" readonly>
-                    <input type="text" id="p1-sign" class="input-box math-sign-input text-emerald-600 font-bold w-12" placeholder="${t.signPlaceholder}" readonly>
-                    <input type="text" id="p1-t2" class="input-box text-indigo-700 font-bold" placeholder="${t.term2Placeholder}" readonly>
-                </div>
-            `;
-
-            const t1 = document.getElementById('p1-t1');
-            const sign = document.getElementById('p1-sign');
-            const t2 = document.getElementById('p1-t2');
-
-            [t1, sign, t2].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
-
-            const checkBtn = document.getElementById('check-btn');
-            checkBtn.classList.remove('hidden');
-            checkBtn.onclick = () => {
-                const v1 = t1.value.trim();
-                const vs = sign.value.trim();
-                const v2 = t2.value.trim();
-
-                if (v1 === pd.exp1Val && vs === pd.signChar && v2 === pd.exp2Val) {
-                    showToast(true);
-                    checkBtn.classList.add('hidden');
-                    const nextBtn = document.getElementById('next-btn');
-                    nextBtn.classList.remove('hidden');
-                    nextBtn.onclick = () => createPlayMode1Level();
+                els.nextBtn.classList.remove('hidden');
+                
+            } else if (state.mode === 'demo2') {
+                if(state.step === 1) {
+                    els.row2.innerHTML = `= 
+                        <div class="flex items-center">${state.multiplier}${getRenderHTML(state.term1)}</div> <div class="px-2">+</div> 
+                        <div class="flex items-center">${state.multiplier}${getRenderHTML(state.term2)}</div> <div class="px-2">+</div> 
+                        <div class="flex items-center">${state.mult2}${getRenderHTML(state.term1)}</div> <div class="px-2">+</div> 
+                        <div class="flex items-center">${state.mult2}${getRenderHTML(state.term2)}</div>`;
                 } else {
-                    showToast(false, `Expected answer: <b>${pd.exp1Val} ${pd.signChar} ${pd.exp2Val}</b>`);
+                    // Demo 2.1 specific logic - ask for input
+                    els.row2.innerHTML = `= <div class="flex items-center">${state.term1}</div> <div class="px-2">+</div> <div class="flex items-center">${state.term2}</div>`;
+                    
+                    // Actually, requirement says show input for demo2.1.
+                    // Let's repurpose play1 input logic for demo 2.1
+                    state.mode = 'play1'; // Hijack play1 logic for simple input
+                    state.correctAnswer = { t1: '8', op: '+', t2: '15' }; // Just dummy, wait, demo2.1 is (3+5)(🍎+🍉) -> = 🍎 + 🍉, need to put 3+5=8.
+                    // Requirement: "= 🍎 + 🍉, 讓玩家輸入數字". Let's setup a specific input row.
+                    els.row2.innerHTML = `= <div id="input-t1" class="term-input active" onclick="setActiveInput('t1')"></div>🍎 + <div id="input-t2" class="term-input" onclick="setActiveInput('t2')"></div>🍉`;
+                    
+                    state.correctAnswer = { t1: '3', op: '+', t2: '5' }; // Wait, (3+5)🍎 means 3🍎 + 5🍎 ? No, question says (3+5)(🍎+🍉) = 3🍎+3🍉+5🍎+5🍉 = 8🍎+8🍉.
+                    // To keep it simple based on prompt: "顯示=🍎+🍉 ，讓玩家輸入數字" -> means _🍎 + _🍉
+                    state.correctAnswer = { t1: '8', t2: '8' }; // Assuming they just add them.
+                    els.row2.innerHTML += `<button id="check-btn-d2" class="ml-4 px-4 py-2 bg-blue-500 text-white rounded">Check</button>`;
+                    document.getElementById('check-btn-d2').addEventListener('click', () => {
+                         if(state.inputs.t1 === '8' && state.inputs.t2 === '8') {
+                             showFeedback(true);
+                             els.nextBtn.classList.remove('hidden');
+                         } else {
+                             showFeedback(false, "8");
+                         }
+                    });
+                    showKeyboard();
                 }
-            };
-        }
+                if(state.step===1) els.nextBtn.classList.remove('hidden');
 
-        function createDemo2Level() {
-            clearHistory();
-            gameState.demo2Hits = { apple: [false, false], watermelon: [false, false] };
-
-            const step1 = createStepRow('step-1');
-            step1.innerHTML = `
-                <div class="flex items-center justify-center gap-1 md:gap-2 flex-wrap text-2xl md:text-3xl font-bold">
-                    <span class="bracket">(</span>
-                    <span id="d2-apple" class="draggable text-3xl md:text-4xl p-1 hover:scale-110">🍎</span>
-                    <span class="text-indigo-600 font-bold">+</span>
-                    <span id="d2-watermelon" class="draggable text-3xl md:text-4xl p-1 hover:scale-110">🍉</span>
-                    <span class="bracket">(</span>
-                    <span class="drop-target d2-target p-1 cursor-pointer" data-idx="0">
-                        <span class="eat-face-target">${getSmileySVG(true)}</span>
-                    </span>
-                    <span class="text-indigo-600 font-bold mx-1">+</span>
-                    <span class="drop-target d2-target p-1 cursor-pointer" data-idx="1">
-                        <span class="eat-face-target">${getSmileySVG(true)}</span>
-                    </span>
-                    <span class="bracket">)</span>
-                </div>
-            `;
-
-            const apple = document.getElementById('d2-apple');
-            const watermelon = document.getElementById('d2-watermelon');
-            const targets = Array.from(step1.querySelectorAll('.d2-target'));
-
-            makeDraggable(apple, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.demo2Hits.apple[idx]) return;
-                gameState.demo2Hits.apple[idx] = true;
-                awardItemToTarget(target, '🍎');
-                checkDemo2Stage1Progress();
-            }, () => targets.filter((_, idx) => !gameState.demo2Hits.apple[idx]));
-
-            makeDraggable(watermelon, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.demo2Hits.watermelon[idx]) return;
-                gameState.demo2Hits.watermelon[idx] = true;
-                awardItemToTarget(target, '🍉');
-                checkDemo2Stage1Progress();
-            }, () => targets.filter((_, idx) => !gameState.demo2Hits.watermelon[idx]));
-        }
-
-        function checkDemo2Stage1Progress() {
-            const aDone = gameState.demo2Hits.apple[0] && gameState.demo2Hits.apple[1];
-            const wDone = gameState.demo2Hits.watermelon[0] && gameState.demo2Hits.watermelon[1];
-
-            if (aDone && wDone) {
-                setTimeout(() => setupDemo2Stage2Drag(), 500);
-            }
-        }
-
-        function setupDemo2Stage2Drag() {
-            clearSourceSelection();
-            const step2 = createStepRow('step-2');
-            step2.innerHTML = `
-                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center text-xl md:text-3xl font-bold">
-                    <span class="text-gray-400 font-bold">=</span>
-                    <span id="d2-s2-apple" class="draggable text-2xl md:text-4xl hover:scale-110">🍎</span>
-                    <span class="bracket d2-b1-l">(</span>
-                    <span class="drop-target d2-apple-target p-1 cursor-pointer" data-idx="0"><span class="eat-face-target">${getSmileySVG(true)}</span></span>
-                    <span class="text-indigo-600 font-bold">+</span>
-                    <span class="drop-target d2-apple-target p-1 cursor-pointer" data-idx="1"><span class="eat-face-target">${getSmileySVG(true)}</span></span>
-                    <span class="bracket d2-b1-r">)</span>
-
-                    <span class="text-indigo-600 font-bold mx-1">+</span>
-
-                    <span id="d2-s2-watermelon" class="draggable text-2xl md:text-4xl hover:scale-110">🍉</span>
-                    <span class="bracket d2-b2-l">(</span>
-                    <span class="drop-target d2-wm-target p-1 cursor-pointer" data-idx="0"><span class="eat-face-target">${getSmileySVG(true)}</span></span>
-                    <span class="text-indigo-600 font-bold">+</span>
-                    <span class="drop-target d2-wm-target p-1 cursor-pointer" data-idx="1"><span class="eat-face-target">${getSmileySVG(true)}</span></span>
-                    <span class="bracket d2-b2-r">)</span>
-                </div>
-            `;
-
-            const dragApple = document.getElementById('d2-s2-apple');
-            const dragWm = document.getElementById('d2-s2-watermelon');
-
-            gameState.demo2Stage2Hits = { apple: [false, false], watermelon: [false, false] };
-
-            makeDraggable(dragApple, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.demo2Stage2Hits.apple[idx]) return;
-                gameState.demo2Stage2Hits.apple[idx] = true;
-                awardItemToTarget(target, '🍎');
-                checkDemo2Stage2Progress();
-            }, () => Array.from(step2.querySelectorAll('.d2-apple-target')).filter((_, idx) => !gameState.demo2Stage2Hits.apple[idx]));
-
-            makeDraggable(dragWm, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.demo2Stage2Hits.watermelon[idx]) return;
-                gameState.demo2Stage2Hits.watermelon[idx] = true;
-                awardItemToTarget(target, '🍉');
-                checkDemo2Stage2Progress();
-            }, () => Array.from(step2.querySelectorAll('.d2-wm-target')).filter((_, idx) => !gameState.demo2Stage2Hits.watermelon[idx]));
-        }
-
-        function checkDemo2Stage2Progress() {
-            const aDone = gameState.demo2Stage2Hits.apple[0] && gameState.demo2Stage2Hits.apple[1];
-            const wDone = gameState.demo2Stage2Hits.watermelon[0] && gameState.demo2Stage2Hits.watermelon[1];
-
-            if (aDone && wDone) {
+            } else if (state.mode === 'play1') {
+                els.row2.innerHTML = `= <div class="flex items-center">${state.multiplier}${HTML_DOT}${state.term1}</div> 
+                                      <div class="px-2">${state.operator}</div> 
+                                      <div class="flex items-center">${state.multiplier}${HTML_DOT}${state.term2}</div>`;
+                
                 setTimeout(() => {
-                    const step2 = document.getElementById('step-2');
-                    step2.querySelectorAll('.d2-b1-l, .d2-b2-l').forEach(b => b.classList.add('bracket-left-collapse'));
-                    step2.querySelectorAll('.d2-b1-r, .d2-b2-r').forEach(b => b.classList.add('bracket-right-collapse'));
-
-                    setTimeout(() => {
-                        const step3 = createStepRow('step-3');
-                        step3.innerHTML = `
-                            <div class="flex items-center justify-center gap-1 md:gap-2 flex-wrap text-xl md:text-3xl font-bold">
-                                <span class="text-gray-400 font-bold mr-1">=</span>
-                                <span class="text-2xl md:text-4xl">🍎</span><span class="eat-face-target">${getSmileySVG(true)}</span>
-                                <span class="text-indigo-600 mx-1">+</span>
-                                <span class="text-2xl md:text-4xl">🍎</span><span class="eat-face-target">${getSmileySVG(true)}</span>
-                                <span class="text-indigo-600 mx-1">+</span>
-                                <span class="text-2xl md:text-4xl">🍉</span><span class="eat-face-target">${getSmileySVG(true)}</span>
-                                <span class="text-indigo-600 mx-1">+</span>
-                                <span class="text-2xl md:text-4xl">🍉</span><span class="eat-face-target">${getSmileySVG(true)}</span>
-                            </div>
-                        `;
-
-                        const nextBtn = document.getElementById('next-btn');
-                        nextBtn.classList.remove('hidden');
-                        nextBtn.textContent = translations[currentLang].next;
-                        nextBtn.onclick = () => {
-                            eatAnimationStandard(() => autoAdvanceNextMode());
-                        };
-                    }, 600);
-                }, 300);
-            }
-        }
-
-        function createDemo21Level() {
-            clearHistory();
-            gameState.demo21Hits = { num3: [false, false], num5: [false, false] };
-
-            const step1 = createStepRow('step-1');
-            step1.innerHTML = `
-                <div class="flex items-center justify-center gap-1 md:gap-2 flex-wrap text-2xl md:text-3xl font-bold">
-                    <span class="bracket">(</span>
-                    <span id="d21-num3-s1" class="draggable text-2xl md:text-4xl font-extrabold text-rose-600 p-1 hover:scale-110">3</span>
-                    <span class="text-indigo-600 font-bold">+</span>
-                    <span id="d21-num5-s1" class="draggable text-2xl md:text-4xl font-extrabold text-rose-600 p-1 hover:scale-110">5</span>
-                    <span class="bracket">)</span>
-                    <span class="bracket">(</span>
-                    <span class="drop-target d21-target p-1 cursor-pointer font-bold" data-idx="0">🍎</span>
-                    <span class="text-indigo-600 font-bold mx-1">+</span>
-                    <span class="drop-target d21-target p-1 cursor-pointer font-bold" data-idx="1">🍉</span>
-                    <span class="bracket">)</span>
-                </div>
-            `;
-
-            const drag3 = document.getElementById('d21-num3-s1');
-            const drag5 = document.getElementById('d21-num5-s1');
-            const targets = Array.from(step1.querySelectorAll('.d21-target'));
-
-            makeDraggable(drag3, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.demo21Hits.num3[idx]) return;
-                gameState.demo21Hits.num3[idx] = true;
-                awardItemToTarget(target, '3');
-                checkDemo21Stage1Progress();
-            }, () => targets.filter((_, idx) => !gameState.demo21Hits.num3[idx]));
-
-            makeDraggable(drag5, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.demo21Hits.num5[idx]) return;
-                gameState.demo21Hits.num5[idx] = true;
-                awardItemToTarget(target, '5');
-                checkDemo21Stage1Progress();
-            }, () => targets.filter((_, idx) => !gameState.demo21Hits.num5[idx]));
-        }
-
-        function checkDemo21Stage1Progress() {
-            const num3Done = gameState.demo21Hits.num3[0] && gameState.demo21Hits.num3[1];
-            const num5Done = gameState.demo21Hits.num5[0] && gameState.demo21Hits.num5[1];
-
-            if (num3Done && num5Done) {
-                setTimeout(() => setupDemo21Stage2Drag(), 500);
-            }
-        }
-
-        function setupDemo21Stage2Drag() {
-            clearSourceSelection();
-            const step2 = createStepRow('step-2');
-            step2.innerHTML = `
-                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center text-xl md:text-3xl font-bold">
-                    <span class="text-gray-400 font-bold">=</span>
-                    <span id="d21-num3" class="draggable text-2xl md:text-4xl mx-1 hover:scale-110 font-extrabold text-rose-600 z-20">3</span>
-                    <span class="bracket d21-b1-l">(</span>
-                    <span class="drop-target d21-3-target mx-1 p-1 font-bold" data-idx="0">🍎</span>
-                    <span class="text-indigo-600">+</span>
-                    <span class="drop-target d21-3-target mx-1 p-1 font-bold" data-idx="1">🍉</span>
-                    <span class="bracket d21-b1-r">)</span>
-
-                    <span class="mx-1 text-indigo-600">+</span>
-
-                    <span id="d21-num5" class="draggable text-2xl md:text-4xl mx-1 hover:scale-110 font-extrabold text-rose-600 z-20">5</span>
-                    <span class="bracket d21-b2-l">(</span>
-                    <span class="drop-target d21-5-target mx-1 p-1 font-bold" data-idx="0">🍎</span>
-                    <span class="text-indigo-600">+</span>
-                    <span class="drop-target d21-5-target mx-1 p-1 font-bold" data-idx="1">🍉</span>
-                    <span class="bracket d21-b2-r">)</span>
-                </div>
-            `;
-
-            const drag3 = document.getElementById('d21-num3');
-            const drag5 = document.getElementById('d21-num5');
-
-            gameState.demo21Stage2Hits = { num3: [false, false], num5: [false, false] };
-
-            makeDraggable(drag3, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.demo21Stage2Hits.num3[idx]) return;
-                gameState.demo21Stage2Hits.num3[idx] = true;
-
-                awardItemToTarget(target, '3');
-                checkDemo21Stage2Progress();
-            }, () => Array.from(step2.querySelectorAll('.d21-3-target')).filter((_, idx) => !gameState.demo21Stage2Hits.num3[idx]));
-
-            makeDraggable(drag5, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.demo21Stage2Hits.num5[idx]) return;
-                gameState.demo21Stage2Hits.num5[idx] = true;
-
-                awardItemToTarget(target, '5');
-                checkDemo21Stage2Progress();
-            }, () => Array.from(step2.querySelectorAll('.d21-5-target')).filter((_, idx) => !gameState.demo21Stage2Hits.num5[idx]));
-        }
-
-        function checkDemo21Stage2Progress() {
-            const num3Done = gameState.demo21Stage2Hits.num3[0] && gameState.demo21Stage2Hits.num3[1];
-            const num5Done = gameState.demo21Stage2Hits.num5[0] && gameState.demo21Stage2Hits.num5[1];
-
-            if (num3Done && num5Done) {
+                    els.rowInput.classList.remove('hidden');
+                    void els.rowInput.offsetWidth;
+                    els.rowInput.style.opacity = '1';
+                    showKeyboard();
+                    updateUI(); // refresh placeholders
+                }, 1000);
+            } else if (state.mode === 'play2') {
+                // Show intermediate step: x(x+b) + a(x+b)
+                els.row2.innerHTML = `= <span class="text-red-500">${state.term1}</span>(${state.term1}+${state.term2}) + <span class="text-blue-500">${state.mult2.replace(/<[^>]*>?/gm, '')}</span>(${state.term1}+${state.term2})`;
+                
                 setTimeout(() => {
-                    const step2 = document.getElementById('step-2');
-                    step2.querySelectorAll('.d21-b1-l, .d21-b2-l').forEach(b => b.classList.add('bracket-left-collapse'));
-                    step2.querySelectorAll('.d21-b1-r, .d21-b2-r').forEach(b => b.classList.add('bracket-right-collapse'));
-
-                    setTimeout(() => {
-                        showDemo21FinalInputStep();
-                    }, 600);
-                }, 300);
+                    els.rowInputPM2.classList.remove('hidden');
+                    void els.rowInputPM2.offsetWidth;
+                    els.rowInputPM2.style.opacity = '1';
+                    showKeyboard();
+                }, 1000);
             }
         }
 
-        function showDemo21FinalInputStep() {
-            const step3 = createStepRow('step-3');
-            step3.innerHTML = `
-                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center text-xl md:text-3xl font-bold">
-                    <span class="text-gray-400 font-bold">=</span>
-                    <span class="text-rose-600 font-extrabold">3</span><span>🍎</span>
-                    <span class="text-indigo-600 mx-1">+</span>
-                    <span class="text-rose-600 font-extrabold">3</span><span>🍉</span>
-                    <span class="text-indigo-600 mx-1">+</span>
-                    <span class="text-rose-600 font-extrabold">5</span><span>🍎</span>
-                    <span class="text-indigo-600 mx-1">+</span>
-                    <span class="text-rose-600 font-extrabold">5</span><span>🍉</span>
-                </div>
-            `;
-
-            const step4 = createStepRow('step-4');
-            step4.innerHTML = `
-                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-3xl max-w-full overflow-x-auto">
-                    <span class="text-gray-400 font-bold mr-1">=</span>
-                    <input type="text" id="d21-in1" class="input-box text-indigo-700 font-bold" placeholder="?" readonly>
-                    <span class="font-bold text-2xl md:text-4xl">🍎</span>
-                    <span class="font-bold text-indigo-600 mx-1">+</span>
-                    <input type="text" id="d21-in2" class="input-box text-indigo-700 font-bold" placeholder="?" readonly>
-                    <span class="font-bold text-2xl md:text-4xl">🍉</span>
-                </div>
-            `;
-
-            const in1 = document.getElementById('d21-in1');
-            const in2 = document.getElementById('d21-in2');
-
-            [in1, in2].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
-
-            const checkBtn = document.getElementById('check-btn');
-            checkBtn.classList.remove('hidden');
-            checkBtn.onclick = () => {
-                const v1 = in1.value.trim();
-                const v2 = in2.value.trim();
-
-                if (v1 === '8' && v2 === '8') {
-                    showToast(true);
-                    checkBtn.classList.add('hidden');
-                    const nextBtn = document.getElementById('next-btn');
-                    nextBtn.classList.remove('hidden');
-                    nextBtn.onclick = () => autoAdvanceNextMode();
-                } else {
-                    showToast(false, 'Expected answer: <b>8🍎 + 8🍉</b>');
-                }
-            };
+        // --- STREAMING_CHUNK:Keyboard and Validation Logic... ---
+        function setActiveInput(id) {
+            state.activeInput = id;
+            document.querySelectorAll('.term-input').forEach(el => el.classList.remove('active'));
+            document.getElementById(id.includes('pm2') ? id.replace('_', '-') : `input-${id}`).classList.add('active');
         }
 
-        function createPlayMode2Level() {
-            clearHistory();
-            const a = Math.floor(Math.random() * 4) + 1;
-            const b = Math.floor(Math.random() * 5) + 1;
-            const varChar = 'x';
-
-            const expTerm2 = `${a + b}x`;
-            const expTerm3 = `${a * b}`;
-
-            gameState.play2Data = { a, b, varChar, expTerm2, expTerm3 };
-            gameState.play2Stage1 = { xHits: [false, false], numHits: [false, false] };
-
-            const step1 = createStepRow('step-1');
-            step1.innerHTML = `
-                <div class="flex items-center justify-center gap-1 md:gap-2 flex-wrap text-2xl md:text-3xl font-bold">
-                    <span class="bracket border-l-4 border-rose-400 pl-1">(</span>
-                    <span id="p2-x" class="draggable font-extrabold text-rose-600 hover:scale-110 p-1">${varChar}</span>
-                    <span class="text-rose-600 font-bold">+</span>
-                    <span id="p2-num" class="draggable font-extrabold text-rose-600 hover:scale-110 p-1">${a}</span>
-                    <span class="bracket border-r-4 border-rose-400 pr-1">)</span>
-                    <span class="bracket">(</span>
-                    <span class="drop-target p2-target px-2 py-1 font-bold text-indigo-700" data-idx="0">${varChar}</span>
-                    <span class="text-indigo-600 font-bold mx-1">+</span>
-                    <span class="drop-target p2-target px-2 py-1 font-bold text-indigo-700" data-idx="1">${b}</span>
-                    <span class="bracket">)</span>
-                </div>
-            `;
-
-            const dragX = document.getElementById('p2-x');
-            const dragNum = document.getElementById('p2-num');
-            const targets = Array.from(step1.querySelectorAll('.p2-target'));
-
-            makeDraggable(dragX, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.play2Stage1.xHits[idx]) return;
-                gameState.play2Stage1.xHits[idx] = true;
-                awardItemToTarget(target, varChar);
-                checkPlay2Stage1Progress();
-            }, () => targets.filter((_, idx) => !gameState.play2Stage1.xHits[idx]));
-
-            makeDraggable(dragNum, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.play2Stage1.numHits[idx]) return;
-                gameState.play2Stage1.numHits[idx] = true;
-                awardItemToTarget(target, `${a}`);
-                checkPlay2Stage1Progress();
-            }, () => targets.filter((_, idx) => !gameState.play2Stage1.numHits[idx]));
+        function toggleOperator() {
+            state.inputs.op = state.inputs.op === '+' ? '-' : '+';
+            updateInputDisplay();
+            setTimeout(() => setActiveInput('t2'), 100);
+        }
+        
+        function toggleOperatorPM2(num) {
+            state.pm2_inputs[`op${num}`] = state.pm2_inputs[`op${num}`] === '+' ? '-' : '+';
+            updatePM2InputDisplay();
+            setTimeout(() => setActiveInput(`pm2_t${num+1}`), 100);
         }
 
-        function checkPlay2Stage1Progress() {
-            const xDone = gameState.play2Stage1.xHits[0] && gameState.play2Stage1.xHits[1];
-            const numDone = gameState.play2Stage1.numHits[0] && gameState.play2Stage1.numHits[1];
+        function typeKey(key) {
+            let currentStr = '';
+            let targetObj = null;
+            let keyName = state.activeInput;
 
-            if (xDone && numDone) {
-                setTimeout(() => setupPlay2Stage2Drag(), 500);
+            if(state.mode === 'play2') {
+                targetObj = state.pm2_inputs;
+                keyName = state.activeInput.replace('pm2_', '');
+            } else {
+                targetObj = state.inputs;
             }
-        }
 
-        function setupPlay2Stage2Drag() {
-            clearSourceSelection();
-            const p2 = gameState.play2Data;
-            const step2 = createStepRow('step-2');
-            step2.innerHTML = `
-                <div class="flex items-center gap-1 md:gap-2 flex-wrap justify-center text-xl md:text-3xl font-bold">
-                    <span class="text-gray-400 font-bold">=</span>
-                    <span id="p2-s2-x" class="draggable text-2xl md:text-4xl hover:scale-110 font-extrabold text-rose-600">${p2.varChar}</span>
-                    <span class="bracket p2-b1-l">(</span>
-                    <span class="drop-target p2-x-target px-2 py-1 font-bold text-indigo-700" data-idx="0">${p2.varChar}</span>
-                    <span class="text-indigo-600">+</span>
-                    <span class="drop-target p2-x-target px-2 py-1 font-bold text-indigo-700" data-idx="1">${p2.b}</span>
-                    <span class="bracket p2-b1-r">)</span>
+            currentStr = targetObj[keyName] || '';
 
-                    <span class="text-indigo-600 font-bold mx-1">+</span>
-
-                    <span id="p2-s2-num" class="draggable text-2xl md:text-4xl hover:scale-110 font-extrabold text-rose-600">${p2.a}</span>
-                    <span class="bracket p2-b2-l">(</span>
-                    <span class="drop-target p2-num-target px-2 py-1 font-bold text-indigo-700" data-idx="0">${p2.varChar}</span>
-                    <span class="text-indigo-600">+</span>
-                    <span class="drop-target p2-num-target px-2 py-1 font-bold text-indigo-700" data-idx="1">${p2.b}</span>
-                    <span class="bracket p2-b2-r">)</span>
-                </div>
-            `;
-
-            const dragX = document.getElementById('p2-s2-x');
-            const dragNum = document.getElementById('p2-s2-num');
-
-            gameState.play2Stage2 = { xHits: [false, false], numHits: [false, false] };
-
-            makeDraggable(dragX, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.play2Stage2.xHits[idx]) return;
-                gameState.play2Stage2.xHits[idx] = true;
-                awardItemToTarget(target, p2.varChar);
-                checkPlay2Stage2Progress();
-            }, () => Array.from(step2.querySelectorAll('.p2-x-target')).filter((_, idx) => !gameState.play2Stage2.xHits[idx]));
-
-            makeDraggable(dragNum, (target) => {
-                const idx = parseInt(target.dataset.idx);
-                if (gameState.play2Stage2.numHits[idx]) return;
-                gameState.play2Stage2.numHits[idx] = true;
-                awardItemToTarget(target, `${p2.a}`);
-                checkPlay2Stage2Progress();
-            }, () => Array.from(step2.querySelectorAll('.p2-num-target')).filter((_, idx) => !gameState.play2Stage2.numHits[idx]));
-        }
-
-        function checkPlay2Stage2Progress() {
-            const xDone = gameState.play2Stage2.xHits[0] && gameState.play2Stage2.xHits[1];
-            const numDone = gameState.play2Stage2.numHits[0] && gameState.play2Stage2.numHits[1];
-
-            if (xDone && numDone) {
-                setTimeout(() => {
-                    const step2 = document.getElementById('step-2');
-                    step2.querySelectorAll('.p2-b1-l, .p2-b2-l').forEach(b => b.classList.add('bracket-left-collapse'));
-                    step2.querySelectorAll('.p2-b1-r, .p2-b2-r').forEach(b => b.classList.add('bracket-right-collapse'));
-
-                    setTimeout(() => {
-                        showPlay24TermInputStep();
-                    }, 600);
-                }, 300);
+            if (key === 'BACK') {
+                currentStr = currentStr.slice(0, -1);
+            } else {
+                currentStr += key;
             }
+
+            targetObj[keyName] = currentStr;
+
+            if(state.mode === 'play2') updatePM2InputDisplay();
+            else updateInputDisplay();
         }
 
-        function showPlay24TermInputStep() {
-            const p2 = gameState.play2Data;
-            const t = translations[currentLang];
-
-            const step3 = createStepRow('step-3');
-            step3.innerHTML = `
-                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-2xl max-w-full overflow-x-auto">
-                    <span class="text-gray-400 font-bold mr-1">=</span>
-                    <input type="text" id="p2-4t-1" class="input-box text-indigo-700 font-bold" placeholder="${t.term1Placeholder}" readonly>
-                    <span class="font-bold text-indigo-600">+</span>
-                    <input type="text" id="p2-4t-2" class="input-box text-indigo-700 font-bold" placeholder="${t.term2Placeholder}" readonly>
-                    <span class="font-bold text-indigo-600">+</span>
-                    <input type="text" id="p2-4t-3" class="input-box text-indigo-700 font-bold" placeholder="${t.term3Placeholder}" readonly>
-                    <span class="font-bold text-indigo-600">+</span>
-                    <input type="text" id="p2-4t-4" class="input-box text-indigo-700 font-bold" placeholder="${t.term4Placeholder}" readonly>
-                </div>
-            `;
-
-            const in1 = document.getElementById('p2-4t-1');
-            const in2 = document.getElementById('p2-4t-2');
-            const in3 = document.getElementById('p2-4t-3');
-            const in4 = document.getElementById('p2-4t-4');
-
-            [in1, in2, in3, in4].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
-
-            const checkBtn = document.getElementById('check-btn');
-            checkBtn.classList.remove('hidden');
-            checkBtn.onclick = () => {
-                const v1 = in1.value.trim();
-                const v2 = in2.value.trim();
-                const v3 = in3.value.trim();
-                const v4 = in4.value.trim();
-
-                const exp1 = `${p2.varChar}²`;
-                const exp2 = `${p2.b}${p2.varChar}`;
-                const exp3 = `${p2.a}${p2.varChar}`;
-                const exp4 = `${p2.a * p2.b}`;
-
-                if ((v1 === exp1 || v1 === 'x^2') && 
-                    ((v2 === exp2 && v3 === exp3) || (v2 === exp3 && v3 === exp2)) && 
-                    v4 === exp4) {
-                    showToast(true, t.stage4CorrectMsg);
-                    checkBtn.classList.add('hidden');
-                    showPlay2CombineTermsStep();
-                } else {
-                    showToast(false, `Expected: <b>x² + ${exp2} + ${exp3} + ${exp4}</b>`);
-                }
-            };
+        function updateInputDisplay() {
+            const inT1 = document.getElementById('input-t1');
+            const inT2 = document.getElementById('input-t2');
+            if(inT1) inT1.innerText = state.inputs.t1;
+            if(inT2) inT2.innerText = state.inputs.t2;
+            const opEl = document.getElementById('input-op');
+            if(opEl) opEl.innerText = state.lang === 'zh' ? (state.inputs.op === '+' ? '+' : '-') : state.inputs.op; // Based on req: 中文版+改為+/- wait, requirement says "中文版的 +改為+/-", actually meaning just show + or - based on state.
+            if(opEl) opEl.innerText = state.inputs.op;
         }
 
-        function showPlay2CombineTermsStep() {
-            const p2 = gameState.play2Data;
-            const t = translations[currentLang];
-
-            const step4 = createStepRow('step-4');
-            step4.innerHTML = `
-                <div class="flex items-center justify-center gap-1 sm:gap-2 flex-nowrap text-xl md:text-3xl max-w-full overflow-x-auto">
-                    <span class="text-gray-400 font-bold mr-1">=</span>
-                    <input type="text" id="p2-3t-1" class="input-box text-indigo-700 font-bold" placeholder="x²" readonly>
-                    <span class="font-bold text-indigo-600">+</span>
-                    <input type="text" id="p2-3t-2" class="input-box text-indigo-700 font-bold" placeholder="${p2.expTerm2}" readonly>
-                    <span class="font-bold text-indigo-600">+</span>
-                    <input type="text" id="p2-3t-3" class="input-box text-indigo-700 font-bold" placeholder="${p2.expTerm3}" readonly>
-                </div>
-            `;
-
-            const in1 = document.getElementById('p2-3t-1');
-            const in2 = document.getElementById('p2-3t-2');
-            const in3 = document.getElementById('p2-3t-3');
-
-            [in1, in2, in3].forEach(inp => inp.addEventListener('click', () => showKeyboardFor(inp)));
-
-            const checkBtn = document.getElementById('check-btn');
-            checkBtn.classList.remove('hidden');
-            checkBtn.onclick = () => {
-                const v1 = in1.value.trim();
-                const v2 = in2.value.trim();
-                const v3 = in3.value.trim();
-
-                if ((v1 === 'x²' || v1 === 'x^2') && v2 === p2.expTerm2 && v3 === p2.expTerm3) {
-                    showToast(true);
-                    checkBtn.classList.add('hidden');
-                    const nextBtn = document.getElementById('next-btn');
-                    nextBtn.classList.remove('hidden');
-                    nextBtn.onclick = () => createPlayMode2Level();
-                } else {
-                    showToast(false, `Expected answer: <b>x² + ${p2.expTerm2} + ${p2.expTerm3}</b>`);
-                }
-            };
+        function updatePM2InputDisplay() {
+            document.getElementById('pm2-t1').innerText = state.pm2_inputs.t1;
+            document.getElementById('pm2-op1').innerText = state.pm2_inputs.op1;
+            document.getElementById('pm2-t2').innerText = state.pm2_inputs.t2;
+            document.getElementById('pm2-op2').innerText = state.pm2_inputs.op2;
+            document.getElementById('pm2-t3').innerText = state.pm2_inputs.t3;
         }
 
-        function updateTranslations() {
-            const t = translations[currentLang];
-            const titleText = document.getElementById('title-text');
-            const langToggle = document.getElementById('lang-toggle');
-            const nextBtn = document.getElementById('next-btn');
-            const checkBtn = document.getElementById('check-btn');
+        function showKeyboard() {
+            els.kb.classList.remove('translate-y-full');
+            document.querySelector('main').style.paddingBottom = '250px';
+        }
 
-            if (titleText) titleText.textContent = t.title;
-            if (langToggle) langToggle.textContent = currentLang === 'zh' ? 'EN / 中' : '中 / EN';
+        function hideKeyboard() {
+            els.kb.classList.add('translate-y-full');
+            document.querySelector('main').style.paddingBottom = '0';
+        }
+
+        function toggleKbPage() {
+            document.getElementById('kb-page-1').classList.toggle('hidden');
+            document.getElementById('kb-page-2').classList.toggle('hidden');
+        }
+
+        function checkPlay1Answer() {
+            const { t1, op, t2 } = state.inputs;
+            const ans = state.correctAnswer;
             
-            const modeTextMap = {
-                ex1: t.btnEx1, ex2: t.btnEx2, ex3: t.btnEx3, ex4: t.btnEx4,
-                play: t.btnPlay, demo2: t.btnDemo2, demo21: t.btnDemo21, play2: t.btnPlay2
-            };
-
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                const mode = btn.dataset.mode;
-                if (modeTextMap[mode]) btn.textContent = modeTextMap[mode];
-            });
-            
-            if (nextBtn && !nextBtn.classList.contains('hidden')) nextBtn.textContent = t.next;
-            if (checkBtn && !checkBtn.classList.contains('hidden')) checkBtn.textContent = t.check;
-
-            updateInstructionText();
-        }
-
-        function updateInstructionText() {
-            const t = translations[currentLang];
-            const instruction = document.getElementById('instruction');
-            if (!instruction) return;
-            if (currentMode === 'ex1') instruction.textContent = t.ex1Inst;
-            else if (currentMode === 'ex2') instruction.textContent = t.ex2Inst;
-            else if (currentMode === 'ex3') instruction.textContent = t.ex3Inst;
-            else if (currentMode === 'ex4') instruction.textContent = t.ex4Inst;
-            else if (currentMode === 'demo2') instruction.textContent = t.demo2Inst;
-            else if (currentMode === 'demo21') instruction.textContent = t.demo21Inst;
-            else if (currentMode === 'play') instruction.textContent = t.playInst;
-            else if (currentMode === 'play2') instruction.textContent = t.play2Inst;
-        }
-
-        function updateModeButtonsUI() {
-            document.querySelectorAll('.mode-btn').forEach(b => {
-                const m = b.dataset.mode;
-                if (m === currentMode) {
-                    b.className = 'mode-btn mode-btn-active';
-                } else {
-                    b.className = 'mode-btn mode-btn-inactive';
-                }
-            });
-        }
-
-        function loadLevel() {
-            updateTranslations();
-            hideKeyboard();
-            if (currentMode === 'ex1') createStandardLevel('🍎');
-            else if (currentMode === 'ex2') createStandardLevel('🍉');
-            else if (currentMode === 'ex3') createStandardLevel('5');
-            else if (currentMode === 'ex4') createMathLevel('5', 'x', '12');
-            else if (currentMode === 'demo2') createDemo2Level();
-            else if (currentMode === 'demo21') createDemo21Level();
-            else if (currentMode === 'play') createPlayMode1Level();
-            else if (currentMode === 'play2') createPlayMode2Level();
-        }
-
-        window.onload = () => {
-            setupVirtualKeyboard();
-
-            const langToggle = document.getElementById('lang-toggle');
-            if (langToggle) {
-                langToggle.addEventListener('click', () => {
-                    currentLang = currentLang === 'zh' ? 'en' : 'zh';
-                    updateTranslations();
-                });
+            if(t1 === ans.t1 && op === ans.op && t2 === ans.t2) {
+                showFeedback(true);
+                els.nextBtn.classList.remove('hidden');
+                hideKeyboard();
+            } else {
+                showFeedback(false, `${ans.t1} ${ans.op} ${ans.t2}`);
             }
+        }
 
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    currentMode = btn.dataset.mode;
-                    updateModeButtonsUI();
-                    loadLevel();
-                });
-            });
+        function checkPlay2Answer() {
+            const i = state.pm2_inputs;
+            const a = state.correctAnswer;
+            
+            if(i.t1 === a.t1 && i.op1 === a.op1 && i.t2 === a.t2 && i.op2 === a.op2 && i.t3 === a.t3) {
+                 showFeedback(true);
+                 els.nextBtn.classList.remove('hidden');
+                 hideKeyboard();
+            } else {
+                 showFeedback(false, `${a.t1} ${a.op1} ${a.t2} ${a.op2} ${a.t3}`);
+            }
+        }
 
-            updateModeButtonsUI();
-            loadLevel();
-        };
+        function showFeedback(isCorrect, realAns = "") {
+            els.bubble.classList.remove('hidden', 'bg-green-500', 'bg-red-500');
+            els.bubble.classList.add(isCorrect ? 'bg-green-500' : 'bg-red-500');
+            
+            els.icon.innerText = isCorrect ? '✅' : '❌';
+            if(isCorrect) {
+                els.msg.innerText = state.lang === 'en' ? 'Correct!' : '答對了！';
+            } else {
+                els.msg.innerText = (state.lang === 'en' ? 'Wrong. ' : '答錯。') + dict[state.lang].real_ans + realAns;
+            }
+            
+            els.bubble.style.opacity = '1';
+            els.bubble.classList.add('animate-bounce');
+            setTimeout(() => els.bubble.classList.remove('animate-bounce'), 1000);
+            
+            if(isCorrect) {
+                setTimeout(() => els.bubble.style.opacity = '0', 3000);
+            }
+        }
+
+        function hideFeedback() {
+            els.bubble.classList.add('hidden');
+            els.bubble.style.opacity = '0';
+        }
+
+        window.onload = init;
     </script>
 </body>
 </html>
